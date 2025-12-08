@@ -1,13 +1,13 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import App from './App.vue'
-import VeeValidate from 'vee-validate';
-import PrimeVue from 'primevue/config';
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import App from './App.vue';
+import router from './router';
+import FormPlugin from '@/form/plugin';
+import './styles/main.css';
 
-const app = createApp(App)
 
-app.use(createPinia())
-app.use(VeeValidate)
-app.use(PrimeVue)
-
-app.mount('#app')
+const app = createApp(App);
+app.use(createPinia());
+app.use(router);
+app.use(FormPlugin, {});
+app.mount('#app');
