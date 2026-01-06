@@ -8,6 +8,6 @@
 </div>
 </template>
 <script setup lang="ts">
-const props = defineProps({ modelValue: [String, Number], label: String, options: { type: Array, default: () => [] } });
+const props = defineProps<{ modelValue?: string | number; label?: string; options?: any[] }>();
 const emit = defineEmits(['update:modelValue']);
 </script>

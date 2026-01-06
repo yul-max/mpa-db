@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useUsersStore } from '@/store/users';
+import { useUsersStore } from '@/stores/users';
 import { useCan } from '@/composables/useCan';
 import { formatDate } from '@/utils/formatters';
 

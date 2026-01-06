@@ -16,7 +16,11 @@ const processQueue = (error: any, token: string | null = null) => {
 api.interceptors.request.use((config) => {
   try {
     const auth = useAuthStore();
-    if (auth.accessToken) config.headers = { ...config.headers, Authorization: `Bearer ${auth.accessToken}` };
+    if (auth.accessToken) {
+      // cast to any to avoid AxiosHeaders typing incompatibility across axios versions
+      // we only intend to set Authorization header here
+      (config as any).headers = { ...(config as any).headers, Authorization: `Bearer ${auth.accessToken}` };
+    }
   } catch (e) { }
   return config;
 });

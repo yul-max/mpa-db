@@ -4,11 +4,12 @@ import { useAuthStore } from '@/stores/auth';
 
 const routes = [
   { path: '/login', name: 'login', component: () => import('@/components/auth/LoginForm.vue'), meta: { public: true } },
+  { path: '/signup', name: 'signup', component: () => import('@/components/auth/SignupForm.vue'), meta: { public: true } },
   {
     path: '/',
     component: () => import('@/layouts/AppLayout.vue'),
     children: [
-      { path: '', name: 'dashboard', component: () => import('@/pages/Dashboard.vue') },
+      { path: '', name: 'dashboard', component: () => import('@/components/mpa/MapDashboard.vue'), meta: { public: true } },
       { path: 'mpas', name: 'mpas-list', component: () => import('@/pages/MPAs/Index.vue') },
       { path: 'mpas/new', name: 'mpas-new', component: () => import('@/pages/MPAs/New.vue') },
       { path: 'mpas/:id', name: 'mpas-details', component: () => import('@/pages/MPAs/Details.vue') },

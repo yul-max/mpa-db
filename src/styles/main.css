@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family:
     Roboto,
@@ -76,6 +82,16 @@ body {
 
   /* Transition */
   --p-transition-duration: 150ms !important;
+}
+
+/* Field validity states */
+.field-invalid .p-inputtext {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08) !important;
+}
+
+.field-valid .p-inputtext {
+  box-shadow: none !important;
 }
 
 .p-inputtext {

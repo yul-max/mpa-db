@@ -10,9 +10,23 @@
               v-model="(payload as any)[field.name]"
               :id="field.name"
               v-bind="componentAttrs(field)"
+              @blur="onFieldBlur(field)"
+              @input="onFieldInput(field)"
+              :class="{
+                'field-invalid': (touched as any)[field.name] && (errors as any)[field.name],
+                'field-valid': (touched as any)[field.name] && !(errors as any)[field.name]
+              }"
             >
             </component>
             <div v-if="(touched as any)[field.name] && (errors as any)[field.name]" class="error-message">{{ (errors as any)[field.name] }}</div>
+
+            <!-- Confirm password live match indicator (signup form) -->
+            <div v-if="field.name === 'confirmPassword'" class="match-indicator">
+              <template v-if="(touched as any)[field.name] && ((payload as any).password || (payload as any).confirmPassword)">
+                <span v-if="(payload as any).password === (payload as any).confirmPassword" class="match-ok">✓ Passwords match</span>
+                <span v-else class="match-bad">✗ Passwords do not match</span>
+              </template>
+            </div>
           </div>
         </div>
         <div
@@ -46,12 +60,7 @@
       <slot :payload="payload" :errors="errors" :isFormValid="isFormValid" :validateField="validateField" />
     </template>
 
-    <!-- Form errors summary -->
-    <div v-if="Object.keys(errors as Record<string, string>).length > 0" class="form-errors">
-      <div v-for="(error, field) in (errors as Record<string, string>)" :key="field" class="error-message">
-        {{ field }}: {{ error }}
-      </div>
-    </div>
+    <!-- Form errors summary removed; errors are shown under each field -->
   </form>
 </template>
 
@@ -71,6 +80,8 @@ type FieldDef = {
   options?: string[];
   placeholder?: string;
   props?: Record<string, unknown>;
+  validateOnBlur?: boolean;
+  validateOnInput?: boolean;
 };
 
 const props = withDefaults(
@@ -110,6 +121,15 @@ watch(
 );
 
 const isFormValid = computed(() => {
+  // Check if form is empty (all fields are their initial values)
+  const isEmpty = Object.keys(props.initialValues).every(
+    (key) => payload.value[key] === props.initialValues[key]
+  );
+
+  if (isEmpty) {
+    return false;
+  }
+
   try {
     props.schema.parse(payload.value);
     return true;
@@ -132,7 +152,21 @@ const validateField = (field: keyof T) => {
       errors.value[field] = error.issues[0]?.message || 'Validation error';
     }
   }
-};const validateForm = (): boolean => {
+};
+
+const onFieldBlur = (field: FieldDef) => {
+  if (field.validateOnBlur) {
+    validateField(field.name as keyof T);
+  }
+};
+
+const onFieldInput = (field: FieldDef) => {
+  if (field.validateOnInput) {
+    validateField(field.name as keyof T);
+  }
+};
+
+const validateForm = (): boolean => {
   errors.value = {};
   try {
     props.schema.parse(payload.value);
@@ -142,6 +176,7 @@ const validateField = (field: keyof T) => {
       error.issues.forEach((err: z.ZodIssue) => {
         const field = err.path[0] as keyof T;
         errors.value[field] = err.message;
+        touched.value[field] = true;
       });
     }
     return false;
@@ -262,6 +297,17 @@ defineExpose({
 .btn-cancel:hover {
   border-color: #0056b3;
   color: #0056b3;
+}
+
+.match-indicator {
+  margin-top: 0.375rem;
+  font-size: 0.9rem;
+}
+.match-ok {
+  color: #16a34a; /* green-600 */
+}
+.match-bad {
+  color: #ef4444; /* red-500 */
 }
 
 .form-errors {

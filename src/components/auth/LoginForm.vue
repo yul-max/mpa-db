@@ -5,8 +5,8 @@
                 <div class="login-form-title">
                     <div class="header-medium-3xl">Welcome Back</div>
                     <div class="text-center">
-                        <span>Don't have an account? </span>
-                        <a class="clickable hoverable underline">Sign up</a>
+                      <span>Don't have an account? </span>
+                      <router-link to="/signup" class="clickable hoverable underline">Sign up</router-link>
                     </div>
                 </div>
             </div>

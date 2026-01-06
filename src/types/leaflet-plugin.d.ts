@@ -1,0 +1,5 @@
+declare module 'esri-leaflet'
+declare module 'leaflet-edgebuffer'
+declare module 'leaflet-search'
+declare module 'leaflet-easybutton'
+declare module 'leaflet.markercluster'
