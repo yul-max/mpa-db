@@ -26,7 +26,7 @@ interface OptionObject {
 
 type OptionType = string | number | OptionObject;
 
-const props = defineProps({
+defineProps({
   id: String,
   modelValue: [String, Number],
   label: String,

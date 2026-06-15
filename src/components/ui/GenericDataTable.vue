@@ -439,8 +439,9 @@ const addFilter = (col: ColumnDef) => {
 
 const removeFilter = (field: string) => {
   activeFilters.value = activeFilters.value.filter((filter) => filter.field !== field);
-  const { [field]: _removed, ...rest } = filterValues.value;
-  filterValues.value = rest;
+  const nextFilters = { ...filterValues.value };
+  delete nextFilters[field];
+  filterValues.value = nextFilters;
   emit('filter-change', { ...filterValues.value });
 };
 

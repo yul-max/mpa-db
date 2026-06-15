@@ -131,7 +131,7 @@ const optionsStore = useOptionsStore();
 const authStore = useAuthStore();
 const mpaStore = useMPAStore();
 const { options } = storeToRefs(optionsStore);
-const { pendingMPAs, loadingPending } = storeToRefs(mpaStore);
+const { pendingMPAs } = storeToRefs(mpaStore);
 
 // Check if user is admin (user_type === 1)
 const isAdmin = computed(() => authStore.user?.user_type === 1);
