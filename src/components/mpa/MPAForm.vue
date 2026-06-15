@@ -45,7 +45,7 @@ const initialValues = reactive({
 const fields: Array<{
   name: string;
   label?: string;
-  type?: 'text' | 'password' | 'select' | 'checkbox' | 'file';
+  type?: 'text' | 'password' | 'select' | 'checkbox' | 'switch' | 'file';
   options?: string[];
   placeholder?: string;
   props?: Record<string, unknown>;
@@ -64,7 +64,7 @@ const fields: Array<{
     type: 'select',
     options: ['Municipality 1', 'Municipality 2']
   },
-  { name: 'isProtected', label: 'Is Protected', type: 'checkbox' },
+  { name: 'isProtected', label: 'Is Protected', type: 'switch' },
   { name: 'files', label: 'Supporting Files', type: 'file', props: { multiple: true } }
 ];
 

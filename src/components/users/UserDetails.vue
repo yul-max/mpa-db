@@ -1,36 +1,100 @@
 <template>
-<div class="space-y-6">
-<div class="flex items-center justify-between">
-<h1 class="text-2xl font-bold">User Details</h1>
-<button v-if="can('users:edit')" @click="goToEdit" class="px-3 py-1 bg-blue-600 text-white rounded">Edit</button>
-</div>
-<div class="border rounded p-4">
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-<div><strong>Email</strong><div>{{ user.email }}</div></div>
-<div><strong>Role</strong><div>{{ user.role }}</div></div>
-<div v-if="user.createdAt"><strong>Created</strong><div>{{ formatDate(user.createdAt) }}</div></div>
-</div>
-</div>
-<div v-if="can('audit:view')" class="border rounded p-4">
-<h2 class="text-lg font-semibold">Audit Trail</h2>
-<!-- AuditTrail component placeholder -->
-</div>
-</div>
+  <Details
+    :data="userData"
+    :loading="loading"
+    :title="detailsTitle"
+    :subtitle="detailsSubtitle"
+    :sections="userDetailsSections"
+    back-link="/users"
+    back-label="Back to Users"
+    :edit-link="editLinkRoute"
+  />
 </template>
-<script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useUsersStore } from '@/stores/users';
-import { useCan } from '@/composables/useCan';
-import { formatDate } from '@/utils/formatters';
 
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, type RouteLocationRaw } from 'vue-router';
+import Details from '@/components/ui/Details.vue';
+import { fetchUser } from '@/api/users';
+
+interface FieldConfig {
+  key: string;
+  label: string;
+  fullWidth?: boolean;
+  type?: 'text' | 'number' | 'boolean' | 'date';
+  formatter?: (value: any) => string;
+}
+
+interface SectionConfig {
+  title: string;
+  fields: FieldConfig[];
+}
 
 const route = useRoute();
-const router = useRouter();
-const store = useUsersStore();
-const { can } = useCan();
-const user = ref<any>({});
-async function load() { const id = route.params.id as string; user.value = await store.fetchById(id); }
-function goToEdit(){ router.push({ name: 'users-edit', params: { id: user.value.id } }); }
-onMounted(load);
+const userData = ref<any>(null);
+const loading = ref(true);
+
+const editLinkRoute = computed((): RouteLocationRaw | null => {
+  return { name: 'users-edit', params: { id: route.params.id } };
+});
+
+const userDetailsSections: SectionConfig[] = [
+  {
+    title: 'Account Information',
+    fields: [
+      { key: 'user_name', label: 'Username' },
+      { key: 'email', label: 'Email' },
+      { key: 'first_name', label: 'First Name' },
+      { key: 'last_name', label: 'Last Name' }
+    ]
+  },
+  {
+    title: 'Location',
+    fields: [
+      { key: 'barangay', label: 'Barangay' },
+      { key: 'municipality', label: 'Municipality' },
+      { key: 'province', label: 'Province' }
+    ]
+  },
+  {
+    title: 'Account Type',
+    fields: [
+      { key: 'user_type', label: 'User Type', type: 'number' }
+    ]
+  }
+];
+
+const detailsTitle = computed(() => {
+  if (!userData.value) return 'User Details';
+  const first = userData.value.first_name || '';
+  const last = userData.value.last_name || '';
+  const fullName = `${first} ${last}`.trim();
+  return fullName || userData.value.user_name || 'User Details';
+});
+
+const detailsSubtitle = computed(() => {
+  const source = userData.value;
+  if (!source) return '';
+  const parts: string[] = [];
+  if (source.barangay) parts.push(`Brgy. ${source.barangay}`);
+  if (source.municipality) parts.push(source.municipality);
+  if (source.province) parts.push(source.province);
+  return parts.join(', ');
+});
+
+onMounted(async () => {
+  try {
+    loading.value = true;
+    const userId = route.params.id;
+
+    if (typeof userId === 'string' || typeof userId === 'number') {
+      const response = await fetchUser(userId);
+      userData.value = response.data ?? null;
+    }
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+  } finally {
+    loading.value = false;
+  }
+});
 </script>

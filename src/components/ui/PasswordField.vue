@@ -1,7 +1,8 @@
 <template>
   <div class="password-field">
+    <label v-if="label" class="field-label">{{ label }}</label>
     <InputTextPrime
-      v-model="value"
+      :value="modelValue"
       :id="id"
       :placeholder="placeholder"
       :type="type || 'password'"
@@ -20,24 +21,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef, ref } from 'vue';
+import { computed, ref } from 'vue';
 import InputTextPrime from 'primevue/inputtext';
 
 const props = defineProps<{
   modelValue: string;
   id?: string;
+  label?: string;
   placeholder?: string;
   type?: string;
 }>();
 const emit = defineEmits(['update:modelValue', 'input']);
 
-const value = toRef(props, 'modelValue');
-
-const hasMin = computed(() => (value.value || '').length >= 8);
-const hasUpper = computed(() => /[A-Z]/.test(value.value || ''));
-const hasLower = computed(() => /[a-z]/.test(value.value || ''));
-const hasNumber = computed(() => /[0-9]/.test(value.value || ''));
-const hasSymbol = computed(() => /[^A-Za-z0-9]/.test(value.value || ''));
+const hasMin = computed(() => (props.modelValue || '').length >= 8);
+const hasUpper = computed(() => /[A-Z]/.test(props.modelValue || ''));
+const hasLower = computed(() => /[a-z]/.test(props.modelValue || ''));
+const hasNumber = computed(() => /[0-9]/.test(props.modelValue || ''));
+const hasSymbol = computed(() => /[^A-Za-z0-9]/.test(props.modelValue || ''));
 const touched = ref(false);
 const allOk = computed(() => hasMin.value && hasUpper.value && hasLower.value && hasNumber.value && hasSymbol.value);
 
@@ -57,6 +57,13 @@ const onFocus = () => {
 .password-field {
   display: flex;
   flex-direction: column;
+  gap: 0.375rem;
+}
+.field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2937;
 }
 .pw-criteria {
   list-style: none;

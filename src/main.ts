@@ -9,6 +9,41 @@ import "primeicons/primeicons.css";
 import 'leaflet/dist/leaflet.css';
 import './styles/main.css';
 
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faBookOpen, faUsers, faPlus, faHouse, faSignOutAlt, faChevronRight, faColumns, faLock, faLockOpen, faCheck, faX, faFileZipper, faChevronDown, faChevronUp, faDownload, faArrowLeft, faEdit, faPenToSquare, faUpload, faSort, faSortUp, faSortDown, faFilter, faLocationArrow, faTimes, faMapMarkedAlt, faClockRotateLeft, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
+
+library.add(
+  faBookOpen,
+  faUsers,
+  faPlus,
+  faHouse,
+  faSignOutAlt,
+  faChevronRight,
+  faColumns,
+  faLock,
+  faLockOpen,
+  faCheck,
+  faX,
+  faFileZipper,
+  faChevronDown,
+  faChevronUp,
+  faDownload,
+  faArrowLeft,
+  faEdit,
+  faPenToSquare,
+  faUpload,
+  faSort,
+  faSortUp,
+  faSortDown,
+  faFilter,
+  faLocationArrow,
+  faTimes,
+  faMapMarkedAlt,
+  faClockRotateLeft,
+  faCircleInfo
+);
+
 
 const app = createApp(App);
 app.use(createPinia());
@@ -21,5 +56,6 @@ app.use(PrimeVue, {
     },
   }
 });
+app.component('FontAwesomeIcon', FontAwesomeIcon);
 // app.use(FormPlugin, {});
 app.mount('#app');

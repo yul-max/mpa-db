@@ -4,7 +4,6 @@
       <div class="form-content">
         <div class="form-fields">
           <div v-for="field in props.fields" :key="field.name" class="form-field">
-            <label v-if="field.label" :for="field.name">{{ field.label }}</label>
             <component
               :is="resolveComponent(field)"
               v-model="(payload as any)[field.name]"
@@ -29,6 +28,12 @@
             </div>
           </div>
         </div>
+        <div v-if="successMessage" class="alert alert-success">
+          {{ successMessage }}
+        </div>
+        <div v-if="errorMessage" class="alert alert-error">
+          {{ errorMessage }}
+        </div>
         <div
           class="form-buttons"
           :class="[
@@ -40,7 +45,7 @@
             type="submit"
             class="btn-submit"
             :class="props.buttonFill && 'w-full'"
-            :disabled="!isFormValid"
+            :disabled="!isFormValid || (props.submit && loading)"
           >
             {{ props.submitLabel }}
           </button>
@@ -50,6 +55,7 @@
             class="btn-cancel"
             :class="props.buttonFill && 'w-full'"
             @click="handleCancel"
+            :disabled="props.submit && loading"
           >
             {{ props.cancelLabel }}
           </button>
@@ -67,22 +73,14 @@
 <script setup lang="ts" generic="T extends Record<string, any>">
 import { ref, computed, watch } from 'vue';
 import { z } from 'zod';
-import InputTextPrime from 'primevue/inputtext';
-import DropdownPrime from 'primevue/dropdown';
-import CheckboxPrime from 'primevue/checkbox';
-import FileUploadPrime from 'primevue/fileupload';
-
-type FieldDef = {
-  name: string;
-  label?: string;
-  type?: 'text' | 'password' | 'select' | 'checkbox' | 'file';
-  component?: unknown; // optional override component
-  options?: string[];
-  placeholder?: string;
-  props?: Record<string, unknown>;
-  validateOnBlur?: boolean;
-  validateOnInput?: boolean;
-};
+import { clearFormValues } from '@/utils/formHelpers';
+import type { FieldDef, SubmitFunction, OnSuccessCallback } from '@/types/forms';
+import InputTextField from './fields/InputTextField.vue';
+import PasswordTextField from './fields/PasswordTextField.vue';
+import DropdownField from './fields/DropdownField.vue';
+import CheckboxField from './fields/CheckboxField.vue';
+import SwitchField from './fields/SwitchField.vue';
+import FileUploadField from './fields/FileUploadField.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -93,11 +91,15 @@ const props = withDefaults(
     cancelLabel?: string;
     buttonAlign?: 'left' | 'right' | 'center';
     buttonFill?: boolean;
+    submit?: SubmitFunction;
+    onSuccess?: OnSuccessCallback;
+    clearOnCancel?: boolean;
   }>(),
   {
     submitLabel: 'Submit',
     buttonAlign: 'left',
-    buttonFill: false
+    buttonFill: false,
+    clearOnCancel: false
   }
 );
 
@@ -105,17 +107,37 @@ const emit = defineEmits<{
   submit: [values: T];
   error: [errors: Partial<Record<keyof T, string>>];
   cancel: [];
+  fieldChange: [fieldName: string, value: unknown, payload: T];
 }>();
 
 const payload = ref<T>(JSON.parse(JSON.stringify(props.initialValues)));
 const errors = ref<Partial<Record<keyof T, string>>>({});
 const touched = ref<Partial<Record<keyof T, boolean>>>({});
+const loading = ref(false);
+const successMessage = ref('');
+const errorMessage = ref('');
 
 // Watch for external changes to initialValues
 watch(
   () => props.initialValues,
   (newValues) => {
     payload.value = JSON.parse(JSON.stringify(newValues));
+  },
+  { deep: true }
+);
+
+// Watch for changes to payload and emit fieldChange events
+watch(
+  payload,
+  (newPayload, oldPayload) => {
+    if (oldPayload) {
+      // Find which field changed
+      for (const key in newPayload) {
+        if (newPayload[key] !== oldPayload[key]) {
+          emit('fieldChange', key, newPayload[key], newPayload);
+        }
+      }
+    }
   },
   { deep: true }
 );
@@ -137,6 +159,11 @@ const isFormValid = computed(() => {
     return false;
   }
 });
+
+const clearMessages = () => {
+  successMessage.value = '';
+  errorMessage.value = '';
+};
 
 const validateField = (field: keyof T) => {
   touched.value[field] = true;
@@ -161,9 +188,13 @@ const onFieldBlur = (field: FieldDef) => {
 };
 
 const onFieldInput = (field: FieldDef) => {
+  clearMessages();
   if (field.validateOnInput) {
     validateField(field.name as keyof T);
   }
+  // Emit field change event for parent components to react to
+  const fieldValue = payload.value[field.name as keyof T];
+  emit('fieldChange', field.name, fieldValue, payload.value);
 };
 
 const validateForm = (): boolean => {
@@ -183,39 +214,94 @@ const validateForm = (): boolean => {
   }
 };
 
-const handleSubmit = () => {
-  if (validateForm()) {
-    emit('submit', payload.value);
-  } else {
+const handleSubmit = async () => {
+  if (!validateForm()) {
     emit('error', errors.value);
+    return;
+  }
+
+  // If a submit function was provided, use it
+  if (props.submit) {
+    loading.value = true;
+    clearMessages();
+    try {
+      const result = await props.submit(payload.value);
+      if (result.success) {
+        successMessage.value = result.message || 'Success!';
+        // Call the onSuccess callback if provided
+        if (props.onSuccess) {
+          await props.onSuccess();
+          payload.value = clearFormValues(payload.value);
+        }
+      } else {
+        errorMessage.value = result.message || 'An error occurred.';
+      }
+    } catch (error) {
+      errorMessage.value = 'An unexpected error occurred.';
+      console.error('Submit error:', error);
+    } finally {
+      loading.value = false;
+    }
+  } else {
+    // Otherwise emit the submit event (backwards compatibility)
+    emit('submit', payload.value);
   }
 };
 
 const handleCancel = () => {
+  if (props.clearOnCancel) {
+    payload.value = clearFormValues(payload.value);
+    errors.value = {};
+    touched.value = {};
+  }
   emit('cancel');
 };
 
-// (file inputs are handled via FileUpload component by default)
-
 const componentMap: Record<string, unknown> = {
-  text: InputTextPrime,
-  password: InputTextPrime,
-  select: DropdownPrime,
-  file: FileUploadPrime,
-  checkbox: CheckboxPrime
+  text: InputTextField,
+  email: InputTextField,
+  number: InputTextField,
+  password: PasswordTextField,
+  select: DropdownField,
+  file: FileUploadField,
+  checkbox: CheckboxField,
+  switch: SwitchField
 };
 
 const resolveComponent = (field: FieldDef) => {
+  // Custom component takes precedence
   if (field.component) return field.component;
-  return (componentMap as Record<string, unknown>)[field.type ?? ''] || 'input';
+
+  // Map field type to form field component
+  // Note: Form field types ('text', 'email', 'select', etc.) are different from
+  // table column types ('string', 'number', 'boolean', etc.)
+  const component = (componentMap as Record<string, unknown>)[field.type ?? ''];
+
+  // Return component if found, otherwise default to InputTextField for unknown types
+  return component || InputTextField;
 };
 
 const componentAttrs = (field: FieldDef) => {
   const base: Record<string, unknown> = { ...(field.props || {}) };
-  if (field.type === 'password') (base as Record<string, unknown>).type = 'password';
-  if (field.placeholder) (base as Record<string, unknown>).placeholder = field.placeholder;
-  if (field.options) (base as Record<string, unknown>).options = field.options;
-  if (field.label) (base as Record<string, unknown>).label = field.label;
+
+  // Ensure id is available for label binding
+  base.id = field.name;
+
+  if (field.label) base.label = field.label;
+  if (field.placeholder) base.placeholder = field.placeholder;
+  if (field.options) base.options = field.options;
+
+  // Handle disabled as either boolean or function
+  if (field.disabled) {
+    const disabled = typeof field.disabled === 'function' ? field.disabled(payload.value) : field.disabled;
+    base.disabled = disabled;
+  }
+
+  // Allow custom type from props (e.g., type: 'number')
+  if (field.props?.type && field.type === 'text') {
+    base.type = field.props.type;
+  }
+
   return base;
 };
 
@@ -226,7 +312,8 @@ defineExpose({
   isFormValid,
   validateField,
   validateForm,
-  handleSubmit
+  handleSubmit,
+  clearMessages
 });
 </script>
 
@@ -247,7 +334,6 @@ defineExpose({
 .form-buttons {
   display: flex;
   gap: 1rem;
-  margin-top: 1.5rem;
   width: 100%;
 }
 .form-buttons.align-left {
@@ -326,5 +412,23 @@ defineExpose({
 
 .error-message:last-child {
   margin-bottom: 0;
+}
+
+.alert {
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+.alert-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
 }
 </style>

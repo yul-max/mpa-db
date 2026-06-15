@@ -14,7 +14,7 @@
 import { reactive, onMounted, toRefs, computed } from 'vue';
 import axios from 'axios';
 import { fieldRegistry } from '@/form/registry';
-import type { FormField } from '@/types/form';
+import type { FormField } from '@/types/forms';
 
 
 const props = defineProps<{ schema: FormField[]; modelValue?: any; validator?: any }>();

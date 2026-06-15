@@ -240,9 +240,9 @@ function handleSingleFeature(feature: any) {
     const bounds = geo.getBounds();
     if (feature.geometry && feature.geometry.type === 'Point') {
       const latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
-      map.setView(latlng, 15);
+      map.setView(latlng, 11);
     } else {
-      map.fitBounds(bounds, { maxZoom: 15 });
+      map.fitBounds(bounds, { maxZoom: 10 });
     }
   } catch (e) {
     console.warn('handleSingleFeature error', e);

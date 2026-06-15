@@ -1,7 +1,7 @@
 <template>
-<div>
-<h1 class="text-2xl font-bold mb-4">Users</h1>
-<!-- minimal listing and link to create/edit -->
-</div>
+	<UserList />
 </template>
-<script setup lang="ts"></script>
+
+<script setup lang="ts">
+import UserList from '@/components/users/UserList.vue';
+</script>

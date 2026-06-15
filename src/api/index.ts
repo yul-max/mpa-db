@@ -2,7 +2,12 @@ import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
 
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE || '/api', withCredentials: true });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_LOCALE_URL || '/api',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
@@ -24,7 +29,6 @@ api.interceptors.request.use((config) => {
   } catch (e) { }
   return config;
 });
-
 
 api.interceptors.response.use(
   res => res,
