@@ -83,6 +83,7 @@
         lazy
         @page="onPageChange"
         @sort="onSort"
+        @row-click="onRowClick"
         @row-contextmenu="onRowContextMenu"
       >
         <template v-for="(col, index) in columns" :key="col.field">
@@ -241,6 +242,7 @@ interface Emits {
   (e: 'sort', event: any): void;
   (e: 'filter-change', filters: Record<string, unknown>): void;
   (e: 'create'): void;
+  (e: 'row-click', row: Record<string, unknown>): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -422,6 +424,10 @@ const contextMenuActions = computed(() => {
 
 const onPageChange = (event: any) => {
   emit('page', event);
+};
+
+const onRowClick = (event: any) => {
+  emit('row-click', event.data as Record<string, unknown>);
 };
 
 const toggleFilters = () => {

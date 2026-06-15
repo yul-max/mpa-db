@@ -1,5 +1,6 @@
 <template>
   <button
+    aria-label="User Profile"
     class="w-10 h-10 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center text-white font-semibold text-sm cursor-pointer transition-colors duration-150"
     :title="fullName"
     @click="$emit('click')"
