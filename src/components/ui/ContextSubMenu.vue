@@ -27,17 +27,21 @@ const emit = defineEmits<{
 }>();
 
 const toggleItem = (index: number) => {
+  const item = props.items[index];
+  if (!item) return;
   // Check if this is the only visible item
   if (isOnlyVisible(index)) {
     return; // Don't toggle if it's the only visible one
   }
-  const newValue = !(props.items[index].toggled ?? false);
+  const newValue = !(item.toggled ?? false);
   emit('toggle', index, newValue);
 };
 
 const isOnlyVisible = (index: number): boolean => {
+  const item = props.items[index];
+  if (!item) return false;
   const visibleCount = props.items.filter((item) => item.toggled !== false).length;
-  return visibleCount === 1 && (props.items[index].toggled ?? false);
+  return visibleCount === 1 && (item.toggled ?? false);
 };
 </script>
 

@@ -82,6 +82,10 @@ import CheckboxField from './fields/CheckboxField.vue';
 import SwitchField from './fields/SwitchField.vue';
 import FileUploadField from './fields/FileUploadField.vue';
 
+/**
+ * Generic schema-driven form component.
+ * Contract is intentionally reusable across auth, user, and MPA flows.
+ */
 const props = withDefaults(
     defineProps<{
     schema: z.ZodSchema;
@@ -91,7 +95,7 @@ const props = withDefaults(
     cancelLabel?: string;
     buttonAlign?: 'left' | 'right' | 'center';
     buttonFill?: boolean;
-    submit?: SubmitFunction;
+    submit?: SubmitFunction<T>;
     onSuccess?: OnSuccessCallback;
     clearOnCancel?: boolean;
   }>(),
@@ -165,6 +169,7 @@ const clearMessages = () => {
   errorMessage.value = '';
 };
 
+/** Validate one field against the provided zod schema. */
 const validateField = (field: keyof T) => {
   touched.value[field] = true;
   try {
@@ -197,6 +202,7 @@ const onFieldInput = (field: FieldDef) => {
   emit('fieldChange', field.name, fieldValue, payload.value);
 };
 
+/** Validate all fields and populate error map for touched controls. */
 const validateForm = (): boolean => {
   errors.value = {};
   try {
@@ -214,6 +220,12 @@ const validateForm = (): boolean => {
   }
 };
 
+/**
+ * Submit flow:
+ * - validates payload
+ * - delegates to optional async submit callback when provided
+ * - otherwise emits legacy submit event
+ */
 const handleSubmit = async () => {
   if (!validateForm()) {
     emit('error', errors.value);

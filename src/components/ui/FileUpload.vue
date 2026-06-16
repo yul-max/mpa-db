@@ -5,7 +5,7 @@
 </div>
 </template>
 <script setup lang="ts">
-const props = defineProps({ modelValue: Array, label: String, multiple: { type: Boolean, default: false } });
+defineProps({ modelValue: Array, label: String, multiple: { type: Boolean, default: false } });
 const emit = defineEmits(['update:modelValue']);
 function onFile(e: any) { const files = Array.from(e.target.files || []); emit('update:modelValue', files); }
 </script>

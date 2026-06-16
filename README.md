@@ -31,6 +31,7 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 - [MPA Components](docs/components/mpa.md)
 - [User Components](docs/components/users.md)
 - [Shared UI Components](docs/components/ui.md)
+- In-app technical docs page: run `npm run dev` and open `/technical-docs`
 
 ## Project Setup
 

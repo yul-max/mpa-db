@@ -17,7 +17,6 @@ export async function loginUser(payload: LoginFormPayload) {
 
 export async function createUser(payload: SignupPayload) {
   const url = `${API_BASE}/auth/signup`
-  const { confirmPassword, ...rest } = payload
   const apiPayload = payload
   const response = await axiosPost(url, apiPayload)
   return response.data

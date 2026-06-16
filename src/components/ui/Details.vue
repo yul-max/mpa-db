@@ -88,11 +88,12 @@
                   <label>{{ field.label }}</label>
                   <span>
                     <template v-if="mode === 'edit'">
-                      <template v-if="editFieldMap[field.key] && editModel">
+                      <template v-if="hasEditField(field.key) && editModel">
                         <component
-                          :is="resolveEditComponent(editFieldMap[field.key].component)"
-                          v-model="editModel[field.key]"
-                          v-bind="resolveEditFieldProps(editFieldMap[field.key])"
+                          :is="resolveEditComponentByKey(field.key)"
+                          :model-value="editModel[field.key]"
+                          @update:model-value="setEditFieldValue(field.key, $event)"
+                          v-bind="resolveEditFieldPropsByKey(field.key)"
                         />
                       </template>
                       <template v-else>
@@ -132,11 +133,12 @@
             <label>{{ field.label }}</label>
             <span>
               <template v-if="mode === 'edit'">
-                <template v-if="editFieldMap[field.key] && editModel">
+                <template v-if="hasEditField(field.key) && editModel">
                   <component
-                    :is="resolveEditComponent(editFieldMap[field.key].component)"
-                    v-model="editModel[field.key]"
-                    v-bind="resolveEditFieldProps(editFieldMap[field.key])"
+                    :is="resolveEditComponentByKey(field.key)"
+                    :model-value="editModel[field.key]"
+                    @update:model-value="setEditFieldValue(field.key, $event)"
+                    v-bind="resolveEditFieldPropsByKey(field.key)"
                   />
                 </template>
                 <template v-else>
@@ -253,7 +255,8 @@ const canEdit = computed(() => !!authStore.user && props.showEdit);
 const componentRegistry = {
   InputTextField: defineAsyncComponent(() => import('@/components/ui/fields/InputTextField.vue')),
   DropdownField: defineAsyncComponent(() => import('@/components/ui/fields/DropdownField.vue')),
-  SwitchField: defineAsyncComponent(() => import('@/components/ui/fields/SwitchField.vue'))
+  SwitchField: defineAsyncComponent(() => import('@/components/ui/fields/SwitchField.vue')),
+  FileUploadField: defineAsyncComponent(() => import('@/components/ui/fields/FileUploadField.vue'))
 } as const;
 
 const editFieldMap = computed<Record<string, EditFieldDef>>(() => {
@@ -268,6 +271,21 @@ const resolveEditComponent = (name: EditFieldDef['component']) => {
   return componentRegistry[name] ?? componentRegistry.InputTextField;
 };
 
+const hasEditField = (key: string): boolean => {
+  return Boolean(editFieldMap.value[key]);
+};
+
+const resolveEditComponentByKey = (key: string) => {
+  const field = editFieldMap.value[key];
+  return resolveEditComponent(field?.component ?? 'InputTextField');
+};
+
+const resolveEditFieldPropsByKey = (key: string) => {
+  const field = editFieldMap.value[key];
+  if (!field) return {};
+  return resolveEditFieldProps(field);
+};
+
 const resolveEditFieldProps = (field: EditFieldDef) => {
   if (!field.props) return {};
   return typeof field.props === 'function' ? field.props(props.editModel ?? {}) : field.props;
@@ -276,6 +294,12 @@ const resolveEditFieldProps = (field: EditFieldDef) => {
 const getFieldValue = (key: string) => {
   if (!props.data) return null;
   return props.data[key];
+};
+
+const setEditFieldValue = (key: string, value: unknown) => {
+  if (!props.editModel) return;
+  // eslint-disable-next-line vue/no-mutating-props
+  props.editModel[key] = value;
 };
 
 const handleBack = () => {

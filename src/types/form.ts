@@ -1,8 +1,10 @@
+/** Remote source descriptor for dynamically loaded form options. */
 export type FieldSource = {
   url: string;
   callback?: (data: any) => any;
 }
 
+/** Legacy/config-driven field descriptor used by dynamic form builders. */
 export type FormField = {
   name: string;
   type: string;
@@ -13,6 +15,10 @@ export type FormField = {
   hidden?: boolean | ((form: any) => boolean);
 }
 
+/**
+ * Core field contract used by `Form.vue`.
+ * The `type` maps to concrete wrapper components under `src/components/ui/fields`.
+ */
 export type FieldDef = {
   name: string;
   label?: string;
@@ -26,6 +32,8 @@ export type FieldDef = {
   validateOnInput?: boolean;
 };
 
-export type SubmitFunction = <T extends Record<string, any>>(values: T) => Promise<{ success: boolean; message?: string }>;
+/** Async submit contract consumed by reusable form components. */
+export type SubmitFunction<T extends Record<string, any> = Record<string, any>> = (values: T) => Promise<{ success: boolean; message?: string }>;
+/** Optional callback invoked by forms after a successful submit. */
 export type OnSuccessCallback = () => void | Promise<void>;
 

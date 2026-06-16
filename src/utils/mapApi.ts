@@ -1,5 +1,5 @@
 // Map API helpers that use the app's API layer.
-import { fetchMPAs, fetchMPA } from '@/api/mpa';
+import { fetchMPAs } from '@/api/mpa';
 import type { WMSGetFeatureInfoParams } from '@/types/map';
 
 const PUBLIC_GEOSERVER_URL = (import.meta.env.PUBLIC_GEOSERVER_URL || import.meta.env.VITE_GEOSERVER_URL) as string | undefined;
@@ -45,7 +45,7 @@ export async function getGeoserverData(params: WMSGetFeatureInfoParams) {
       // Transform flattened properties to remove prefixes
 
       const transformedData = data.features.map((feature: any) => {
-        let transformedProperties: Record<string, any> = {};
+        const transformedProperties: Record<string, any> = {};
         for (const [key, value] of Object.entries(feature.properties)) {
           if (key.startsWith('properties.')) {
             // Remove the 'properties.' prefix

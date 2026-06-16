@@ -1,6 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
+/**
+ * Application routes are grouped under the app layout to keep a single shell
+ * (header + main content) while switching feature pages via child routes.
+ */
 
 const routes = [
   {
@@ -17,6 +21,7 @@ const routes = [
       { path: 'users/new', name: 'users-new', component: () => import('@/pages/Users/New.vue'), meta: { requiresAuth: true } },
       { path: 'users/:id', name: 'users-details', component: () => import('@/pages/Users/Details.vue'), meta: { requiresAuth: true } },
       { path: 'users/:id/edit', name: 'users-edit', component: () => import('@/pages/Users/Edit.vue'), meta: { requiresAuth: true } },
+      { path: 'technical-docs', name: 'technical-docs', component: () => import('@/pages/TechnicalDocs.vue'), meta: { public: true, devOnly: true } },
       { path: 'records', redirect: '/mpa' }
     ]
   }
@@ -25,8 +30,16 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes });
 
+/**
+ * Global navigation guard:
+ * - blocks authenticated routes when session is missing
+ * - hides dev-only routes outside development builds
+ */
 router.beforeEach((to) => {
   const auth = useAuthStore();
+  if (to.meta.devOnly && !import.meta.env.DEV) {
+    return { name: 'dashboard' };
+  }
   if (to.meta.requiresAuth && (!auth.user || !auth.isAuthenticated)) {
     return { name: 'dashboard' };
   }

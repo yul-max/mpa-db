@@ -6,6 +6,13 @@ import { useCookies } from '@vueuse/integrations/useCookies'
 import api from '@/api/index'
 import { useUsersStore } from './users'
 
+/**
+ * Pinia auth store.
+ * Responsibilities:
+ * - persist token/user in cookies
+ * - restore auth state after refresh
+ * - validate session via /me endpoint
+ */
 export const useAuthStore = defineStore('auth', () => {
   const cookies = useCookies(['auth_user', 'auth_token'])
   const user = ref<any>(cookies.get('auth_user') || null)
@@ -13,6 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!accessToken.value)
 
+  /** Sync in-memory user and cookie state. */
   function setUser(u: any) {
     user.value = u
     if (u) {
@@ -28,6 +36,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
 
+  /**
+   * Login flow:
+   * 1) request token/user
+   * 2) persist auth data
+   * 3) preload users list for cross-feature lookups
+   */
   async function login(payload: LoginFormPayload) {
     const resp = await loginUser(payload)
     setAccessToken(resp.auth_token)
@@ -43,6 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
     return resp
   }
 
+  /** Clear local auth session state. */
   async function logout() {
     // await authApi.logout()
     // accessToken.value = null
@@ -56,6 +71,11 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = t
   }
 
+  /**
+   * Verifies the current token by calling /me.
+   * Authentication failures (401/403) trigger logout, while transient server
+   * failures keep the session to avoid unnecessary user disruption.
+   */
   async function verifyAuth() {
     // First check if token exists in cookies and restore it if needed
     const tokenFromCookie = cookies.get('auth_token')

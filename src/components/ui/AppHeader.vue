@@ -65,6 +65,10 @@ const isActiveRoute = (path: string) => {
   return route.path.startsWith(path);
 };
 
+/**
+ * Header center navigation.
+ * Keep IDs stable because tests and route-visibility logic key off these values.
+ */
 const headerButtons = ref([
   {
     id: 'home',
@@ -93,6 +97,15 @@ const headerButtons = ref([
       router.push('/users');
     }
   },
+  {
+    id: 'technical-docs',
+    label: 'Technical Docs',
+    icon: 'circle-info',
+    path: '/technical-docs',
+    onClick: () => {
+      router.push('/technical-docs');
+    }
+  },
   // {
   //   id: 'add',
   //   label: 'Add',
@@ -108,6 +121,7 @@ const headerComponents = shallowRef([
   {
     id: 'user-icon',
     component: UserIcon,
+    props: {},
     show: () => !!userLoggedIn.value && (authStore.user.user_type === 1 || authStore.user.user_type === 2),
     onClick: () => {
       userMenuRef.value?.openMenu();
@@ -120,6 +134,7 @@ const visibleComponents = computed(() => headerComponents.value.filter(item => i
 const visibleHeaderButtons = computed(() =>
   headerButtons.value.filter((button) => {
     if (button.id === 'users') return userLoggedIn.value && authStore.user.user_type === 1;
+    if (button.id === 'technical-docs') return import.meta.env.DEV;
     return true;
   })
 );

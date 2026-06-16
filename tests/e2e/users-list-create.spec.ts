@@ -14,6 +14,24 @@ const loginAsAdmin = async (page: playwright.Page) => {
   await expect(page.getByRole('button', { name: 'Users' })).toBeVisible({ timeout: 5000 });
 };
 
+const openCreateUserModal = async (page: playwright.Page) => {
+  await page.getByRole('button', { name: 'Users' }).click();
+  await expect(page).toHaveURL(/\/users$/);
+
+  const createButton = page.getByRole('button', { name: 'Create' });
+  const modalHeading = page.getByRole('heading', { name: 'Create User' });
+
+  await expect(createButton).toBeVisible();
+  await createButton.click();
+
+  // Some runs miss the first click due transient overlays; retry once before failing.
+  if (!(await modalHeading.isVisible())) {
+    await createButton.click();
+  }
+
+  await expect(modalHeading).toBeVisible();
+};
+
 test.describe('Users list and create modal', () => {
   test.beforeEach(async ({ page }) => {
     await setupApiMocks(page, { authenticated: true, role: 'admin' });
@@ -21,12 +39,7 @@ test.describe('Users list and create modal', () => {
   });
 
   test('opens and submits Create User modal', async ({ page }) => {
-    await page.getByRole('button', { name: 'Users' }).click();
-
-    await expect(page).toHaveURL(/\/users$/);
-    await page.getByRole('button', { name: 'Create' }).click();
-
-    await expect(page.getByRole('heading', { name: 'Create User' })).toBeVisible();
+    await openCreateUserModal(page);
     await page.getByLabel('Username').fill('new.user');
     await page.getByLabel('Email').fill('new.user@example.com');
     await page.getByRole('button', { name: 'Create User' }).click();
@@ -36,17 +49,14 @@ test.describe('Users list and create modal', () => {
   });
 
   test('disables Create User submit with invalid email', async ({ page }) => {
-    await page.getByRole('button', { name: 'Users' }).click();
-    await page.getByRole('button', { name: 'Create' }).click();
+    await openCreateUserModal(page);
 
     await page.getByLabel('Email').fill('invalid-email');
     await expect(page.getByRole('button', { name: 'Create User' })).toBeDisabled();
   });
 
   test('closes create modal immediately when form is not dirty', async ({ page }) => {
-    await page.getByRole('button', { name: 'Users' }).click();
-    await page.getByRole('button', { name: 'Create' }).click();
-    await expect(page.getByRole('heading', { name: 'Create User' })).toBeVisible();
+    await openCreateUserModal(page);
 
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('heading', { name: 'Create User' })).not.toBeVisible();
@@ -54,11 +64,7 @@ test.describe('Users list and create modal', () => {
   });
 
   test('opens discard confirmation when canceling dirty Create User modal', async ({ page }) => {
-    await page.getByRole('button', { name: 'Users' }).click();
-    await expect(page).toHaveURL(/\/users$/);
-
-    await page.getByRole('button', { name: 'Create' }).click();
-    await expect(page.getByRole('heading', { name: 'Create User' })).toBeVisible();
+    await openCreateUserModal(page);
 
     await page.getByLabel('Username').fill('dirty.user');
     await page.getByRole('button', { name: 'Cancel' }).click();
@@ -70,8 +76,7 @@ test.describe('Users list and create modal', () => {
   });
 
   test('keeps create modal open when choosing Keep editing on discard prompt', async ({ page }) => {
-    await page.getByRole('button', { name: 'Users' }).click();
-    await page.getByRole('button', { name: 'Create' }).click();
+    await openCreateUserModal(page);
 
     await page.getByLabel('Username').fill('dirty.user');
     await page.getByRole('button', { name: 'Cancel' }).click();

@@ -7,13 +7,10 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "*": ["./node_modules/*"]
+      "@/*": ["./src/*"]
     },
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "types": ["leaflet"],
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src", "env.d.ts"]
 }

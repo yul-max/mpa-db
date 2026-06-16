@@ -191,15 +191,21 @@ import SwitchField from '@/components/ui/fields/SwitchField.vue';
 import ConfirmModal from './ConfirmModal.vue';
 
 interface Props {
+  /** Current page rows rendered by the DataTable. */
   rows: any[];
+  /** Declarative column definitions controlling render/sort/filter/export behavior. */
   columns: ColumnDef[];
+  /** Total records in backing dataset, used by paginator. */
   totalRecords: number;
+  /** Loading flag for busy table state. */
   loading: boolean;
   sortField?: string;
   sortOrder?: number;
   pageSize?: number;
   exportListName?: 'MPA' | 'User';
+  /** Optional callback to fetch full dataset when exporting all rows. */
   exportAllRows?: () => Promise<Record<string, unknown>[]>;
+  /** Optional per-row context actions used by context menu workflow. */
   rowContextMenuActions?: (row: any) => ContextAction[];
 }
 
@@ -238,10 +244,14 @@ const RenderCell = defineComponent({
 });
 
 interface Emits {
+  /** PrimeVue page event payload. */
   (e: 'page', event: any): void;
+  /** PrimeVue sort event payload. */
   (e: 'sort', event: any): void;
+  /** Emitted when active filters change. */
   (e: 'filter-change', filters: Record<string, unknown>): void;
   (e: 'create'): void;
+  /** Emits raw clicked row data for parent-route navigation. */
   (e: 'row-click', row: Record<string, unknown>): void;
 }
 
@@ -592,11 +602,13 @@ const lockColumn = (col: ColumnDef) => {
   // Remove from current position
   const index = props.columns.indexOf(col);
   if (index > -1) {
+    // eslint-disable-next-line vue/no-mutating-props
     props.columns.splice(index, 1);
   }
 
   // Add to beginning and mark as locked
   col.locked = true;
+  // eslint-disable-next-line vue/no-mutating-props
   props.columns.unshift(col);
 };
 
@@ -609,10 +621,12 @@ const unlockColumn = (col: ColumnDef) => {
     // Remove from current position
     const currentIndex = props.columns.indexOf(col);
     if (currentIndex > -1) {
+      // eslint-disable-next-line vue/no-mutating-props
       props.columns.splice(currentIndex, 1);
     }
 
     // Insert at original position
+    // eslint-disable-next-line vue/no-mutating-props
     props.columns.splice(originalPos, 0, col);
     originalPositions.delete(col);
   }

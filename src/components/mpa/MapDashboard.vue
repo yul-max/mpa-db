@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import 'leaflet/dist/leaflet.css'
 
 import { ref, onMounted, onBeforeUnmount } from 'vue';
@@ -31,6 +31,7 @@ import PinDrawer from './MapComponents/PinDrawer.vue';
 import MpaDrawer from './MapComponents/MpaDrawer.vue';
 import FilterModal from './MapComponents/FilterModal.vue';
 import Loading from '@/components/ui/Loading.vue';
+import type { WMSGetFeatureInfoParams } from '@/types/map';
 import { getDetailedMapData, getGeoserverData } from '../../utils/mapApi';
 import { useDrawerStore } from '@/stores/drawer';
 import { usePointsStore } from '@/stores/points';
@@ -177,7 +178,7 @@ function WmsClickHandler(wms: L.TileLayer.WMS | null) {
   map.on('click', function (e: L.LeafletMouseEvent) {
     const point: L.Point = map!.latLngToContainerPoint(e.latlng);
     const size = map!.getSize();
-    const params: Record<string, unknown> = {
+    const params: WMSGetFeatureInfoParams = {
       request: 'GetFeatureInfo',
       service: 'WMS',
       srs: 'EPSG:4326',
@@ -195,7 +196,9 @@ function WmsClickHandler(wms: L.TileLayer.WMS | null) {
       y: Math.round(point.y)
     };
 
-    if (currentCqlFilter) params.cql_filter = currentCqlFilter;
+    if (currentCqlFilter) {
+      (params as WMSGetFeatureInfoParams & { cql_filter?: string }).cql_filter = currentCqlFilter;
+    }
 
     getGeoserverData(params).then((features: any[]) => {
       if (!features || features.length === 0) return;

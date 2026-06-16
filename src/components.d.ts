@@ -37,7 +37,6 @@ declare module 'vue' {
     MapModal: typeof import('./components/ui/MapModal.vue')['default']
     MPADetails: typeof import('./components/mpa/MPADetails.vue')['default']
     MpaDrawer: typeof import('./components/mpa/MapComponents/MpaDrawer.vue')['default']
-    MPAEditForm: typeof import('./components/mpa/MPAEditForm.vue')['default']
     MPAForm: typeof import('./components/mpa/MPAForm.vue')['default']
     MPAList: typeof import('./components/mpa/MPAList.vue')['default']
     MultiStepForm: typeof import('./components/ui/form/MultiStepForm.vue')['default']

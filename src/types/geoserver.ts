@@ -14,4 +14,5 @@ export interface WMSGetFeatureInfoParams {
   feature_count: number;  // Max number of features to return - 50
   x: number;              // X coordinate of the click in pixels
   y: number;              // Y coordinate of the click in pixels
+  cql_filter?: string;    // Optional CQL filter expression
 }

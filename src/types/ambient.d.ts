@@ -13,6 +13,6 @@ declare module '@/utils/mapApi';
 // Vue single-file component shim
 declare module '*.vue' {
   import type { DefineComponent } from 'vue';
-  const component: DefineComponent<{}, {}, any>;
+  const component: DefineComponent<Record<string, unknown>, Record<string, unknown>, any>;
   export default component;
 }

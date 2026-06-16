@@ -74,7 +74,7 @@ export function useForm<T extends Record<string, any>>(
 
   watch(
     () => payload.value,
-    (newValue) => {
+    () => {
       // Optional: auto-validate on change if enabled
       if (options?.validateOnChange) {
         validateForm();

@@ -2,6 +2,10 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { fetchUsers, fetchUser, createUser, updateUser, deleteUser } from '@/api/users';
 
+/**
+ * Normalized users-store entity.
+ * Note: backend payloads may include additional dynamic keys.
+ */
 interface User {
   id: number;
   first_name: string;
@@ -11,6 +15,10 @@ interface User {
   [key: string]: any;
 }
 
+/**
+ * Users store centralizes user CRUD and provides lookup helpers used by
+ * details/list views to avoid repeated list scans.
+ */
 export const useUsersStore = defineStore('users', () => {
   const list = ref<User[]>([]);
   const loading = ref(false);
@@ -28,7 +36,7 @@ export const useUsersStore = defineStore('users', () => {
     return map;
   });
 
-  // Helper to get user full name by ID
+  /** Return display-ready full name from ID with fallback behavior. */
   function getUserFullName(id: number | string | null | undefined): string {
     if (!id) return 'N/A';
     const userId = typeof id === 'string' ? parseInt(id, 10) : id;
@@ -37,13 +45,14 @@ export const useUsersStore = defineStore('users', () => {
     return `${user.first_name} ${user.last_name}`.trim() || user.email || 'N/A';
   }
 
-  // Helper to get user by ID
+  /** Retrieve a cached user by ID. */
   function getUserById(id: number | string | null | undefined): User | null {
     if (!id) return null;
     const userId = typeof id === 'string' ? parseInt(id, 10) : id;
     return usersById.value.get(userId) || null;
   }
 
+  /** Fetch and normalize all users into list cache. */
   async function fetchAll() {
     loading.value = true;
     try {
@@ -66,6 +75,7 @@ export const useUsersStore = defineStore('users', () => {
     }
   }
 
+  /** Fetch a single user record from API. */
   async function fetchById(id: string | number) {
     try {
       const response = await fetchUser(id);
@@ -76,6 +86,7 @@ export const useUsersStore = defineStore('users', () => {
     }
   }
 
+  /** Create user then refresh cache. */
   async function create(payload: any) {
     try {
       const response = await createUser(payload);
@@ -87,6 +98,7 @@ export const useUsersStore = defineStore('users', () => {
     }
   }
 
+  /** Update user then refresh cache. */
   async function update(id: string | number, payload: any) {
     try {
       const response = await updateUser(id, payload);
@@ -98,6 +110,7 @@ export const useUsersStore = defineStore('users', () => {
     }
   }
 
+  /** Delete user then refresh cache. */
   async function remove(id: string | number) {
     try {
       const response = await deleteUser(id);

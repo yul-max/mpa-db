@@ -32,7 +32,6 @@ const emit = defineEmits(['submit','update:modelValue']);
 const { steps, stepSchemas, stepFieldDefs } = getStepConfig(props.resource, props.mode);
 const form = reactive({ ...(props.modelValue || {}) });
 const stepIndex = ref(0);
-const currentStep = computed(() => steps[stepIndex.value]);
 const currentFields = computed(() => stepFieldDefs[stepIndex.value] || []);
 const currentValidator = computed(() => stepSchemas[stepIndex.value]);
 

@@ -9,7 +9,10 @@ const api = axios.create({
   }
 });
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
+let failedQueue: Array<{
+  resolve: (token: string | null) => void;
+  reject: (error: unknown) => void;
+}> = [];
 
 
 const processQueue = (error: any, token: string | null = null) => {
@@ -26,7 +29,7 @@ api.interceptors.request.use((config) => {
       // we only intend to set Authorization header here
       (config as any).headers = { ...(config as any).headers, Authorization: `Bearer ${auth.accessToken}` };
     }
-  } catch (e) { }
+  } catch { }
   return config;
 });
 

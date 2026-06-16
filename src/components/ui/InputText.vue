@@ -6,7 +6,7 @@
 </div>
 </template>
 <script setup lang="ts">
-const props = defineProps({ modelValue: [String, Number], label: String, error: String });
+defineProps({ modelValue: [String, Number], label: String, error: String });
 const emit = defineEmits(['update:modelValue']);
 function update(v: any) { emit('update:modelValue', v.target ? v.target.value : v); }
 </script>
