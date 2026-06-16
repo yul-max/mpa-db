@@ -13,15 +13,16 @@ export const useDrawerStore = defineStore('drawer', () => {
     pin.value.isOpen = false;
     pin.value.properties = null;
   }
-  function openMpa(properties: any) {
-    mpa.value.properties = properties;
-    for (const [key, value] of Object.entries(properties)) {
-      if (typeof value === 'string' && value === 'NULL') {
-        properties[key] = '-';
-        mpa.value.isOpen = true;
-      }
-    }
-  }
+function openMpa(properties: any) {
+  const sanitized = Object.fromEntries(
+    Object.entries(properties ?? {}).map(([key, value]) => [
+      key,
+      typeof value === 'string' && value === 'NULL' ? '-' : value
+    ])
+  );
+  mpa.value.properties = sanitized;
+  mpa.value.isOpen = true;
+}
 
   function closeMpa() {
     mpa.value.isOpen = false;
