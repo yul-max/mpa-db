@@ -24,8 +24,9 @@ const initials = computed(() => {
 })
 
 const fullName = computed(() => {
-  const firstName = authStore.user?.firstName || ''
-  const lastName = authStore.user?.lastName || ''
-  return `${firstName} ${lastName}`.trim()
+  const first = authStore.user?.first_name || '';
+  const last = authStore.user?.last_name || '';
+  const name = `${first} ${last}`.trim();
+  return name || authStore.user?.user_name || '';
 })
 </script>
