@@ -69,15 +69,16 @@ export function useBarangayOptions(
   municipalityId?: ComputedRef<string | number | undefined> | string | number | undefined
 ): ComputedRef<DropdownOption[]> {
   const data = Array.isArray(barangays) ? computed(() => barangays) : barangays;
-  const municipalityFilter = typeof municipalityId === 'object' ? municipalityId : municipalityId;
+  const municipalityFilter =
+    typeof municipalityId === 'object' ? municipalityId : computed(() => municipalityId);
 
   return computed(() => {
     const items = data.value as BarangayApiResponse[];
     let filtered = items.filter((item) => item.name != null && item.name !== '');
 
     // Apply municipality filter if provided
-    if (municipalityFilter != null) {
-      const targetMunicipalityId = Number(municipalityFilter);
+    if (municipalityFilter.value != null) {
+      const targetMunicipalityId = Number(municipalityFilter.value);
       filtered = filtered.filter((item) => item.municipality_id === targetMunicipalityId);
     }
 
