@@ -20,22 +20,30 @@
 
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, computed } from 'vue';
 import FormBuilder from './FormBuilder.vue';
 import { getStepConfig } from '@/form/getStepConfig';
 
-
 const props = defineProps<{ resource: string; mode: string; modelValue?: any }>();
-const emit = defineEmits(['submit','update:modelValue']);
-
+const emit = defineEmits(['submit', 'update:modelValue']);
 
 const { steps, stepSchemas, stepFieldDefs } = getStepConfig(props.resource, props.mode);
-const form = reactive({ ...(props.modelValue || {}) });
+const form = ref<Record<string, any>>({ ...(props.modelValue || {}) });
 const stepIndex = ref(0);
 const currentFields = computed(() => stepFieldDefs[stepIndex.value] || []);
 const currentValidator = computed(() => stepSchemas[stepIndex.value]);
 
+function next() {
+  if (stepIndex.value < steps.length - 1) {
+    stepIndex.value++;
+    return;
+  }
+  const snapshot = JSON.parse(JSON.stringify(form.value));
+  emit('update:modelValue', snapshot);
+  emit('submit', snapshot);
+}
 
-function next() { if (stepIndex.value < steps.length -1) stepIndex.value++; else emit('submit', JSON.parse(JSON.stringify(form))); }
-function prev() { if (stepIndex.value>0) stepIndex.value--; }
+function prev() {
+  if (stepIndex.value > 0) stepIndex.value--;
+}
 </script>
