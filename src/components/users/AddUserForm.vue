@@ -141,7 +141,7 @@ const optionalNumber = z.preprocess(
 
 const schema = z.object({
   user_name: z.string().optional(),
-  email: z.string().email('Valid email required').optional(),
+  email: z.string().min(1, 'Email is required').email('Valid email required'),
   first_name: z.string().optional(),
   last_name: z.string().optional(),
   province: z.string().optional(),
