@@ -83,12 +83,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (tokenFromCookie && !accessToken.value) {
       accessToken.value = tokenFromCookie
-      console.log('Restored token from cookie')
     }
 
     if (userFromCookie && !user.value) {
       user.value = userFromCookie
-      console.log('Restored user from cookie:', userFromCookie)
     }
 
     // If no token found in state or cookies, return false
