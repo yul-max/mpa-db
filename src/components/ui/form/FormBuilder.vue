@@ -43,11 +43,20 @@ options[field.name] = field.source.callback ? field.source.callback(resp.data) :
 
 
 async function validate() {
-errorsClear();
-if (props.validator) {
-try { props.validator.parse(form); return true; } catch (e: any) { if (e?.errors) e.errors.forEach((err:any)=> { const p = err.path[0]; errors[p]=err.message }); return false; }
-}
-return true;
+  errorsClear();
+  if (!props.validator) return true;
+
+  try {
+    props.validator.parse(form);
+    return true;
+  } catch (e: any) {
+    const issues = e?.issues ?? e?.errors ?? [];
+    issues.forEach((err: any) => {
+      const p = err.path?.[0];
+      if (p != null) errors[p] = err.message;
+    });
+    return false;
+  }
 }
 
 
