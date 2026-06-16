@@ -26,9 +26,13 @@ export async function getDetailedMapData(params?: any): Promise<any[]> {
 }
 
 export async function getGeoserverData(params: WMSGetFeatureInfoParams) {
+  if (!PUBLIC_GEOSERVER_URL) {
+    console.warn('PUBLIC_GEOSERVER_URL is not configured');
+    return null;
+  }
+
   // Convert params object to URL search parameters
   const searchParams = new URLSearchParams();
-
   // Add all params to the search parameters
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined) {
