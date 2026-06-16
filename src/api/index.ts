@@ -40,7 +40,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => { failedQueue.push({ resolve, reject }); })
-          .then((token) => { original.headers.Authorization = `Bearer ${token}`; return api(original); });
+          .then((token) => {
+            original.headers = original.headers ?? {};
+            (original.headers as any).Authorization = `Bearer ${token}`;
+            return api(original);
+          });
       }
       original._retry = true;
       isRefreshing = true;
@@ -50,7 +54,8 @@ api.interceptors.response.use(
         const auth = useAuthStore();
         auth.setAccessToken(token);
         processQueue(null, token);
-        original.headers.Authorization = `Bearer ${token}`;
+        original.headers = original.headers ?? {};
+        (original.headers as any).Authorization = `Bearer ${token}`;
         return api(original);
       } catch (err) {
         processQueue(err, null);
