@@ -11,20 +11,25 @@
 
 
 <script setup lang="ts">
-import { reactive, onMounted, computed } from 'vue';
+import { reactive, onMounted, computed, watch } from 'vue';
 import axios from 'axios';
 import { fieldRegistry } from '@/form/registry';
 import type { FormField } from '@/types/forms';
 
-
 const props = defineProps<{ schema: FormField[]; modelValue?: any; validator?: any }>();
 const schema = props.schema;
 const visibleSchema = computed(() => (schema || []).filter((f: FormField) => !isHidden(f)));
-const emit = defineEmits(['submit','update:modelValue']);
+const emit = defineEmits(['submit', 'update:modelValue']);
 const form = reactive({ ...(props.modelValue || {}) });
-const errors: Record<string,string> = reactive({});
-const options: Record<string, any[]> = reactive({});
 
+watch(
+  form,
+  () => emit('update:modelValue', JSON.parse(JSON.stringify(form))),
+  { deep: true }
+);
+
+const errors: Record<string, string> = reactive({});
+const options: Record<string, any[]> = reactive({});
 
 function resolve(type: string) { return fieldRegistry[type] || fieldRegistry['text']; }
 function isHidden(field: FormField) { return typeof field.hidden === 'function' ? field.hidden(form) : field.hidden; }
