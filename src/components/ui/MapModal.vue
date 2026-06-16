@@ -58,7 +58,7 @@ const initializeMap = () => {
   const lat = typeof props.latitude === 'string' ? parseFloat(props.latitude) : props.latitude;
   const lng = typeof props.longitude === 'string' ? parseFloat(props.longitude) : props.longitude;
 
-  if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+  if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) {
     console.warn('Invalid coordinates for map modal');
     return;
   }
