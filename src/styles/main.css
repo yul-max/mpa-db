@@ -1,0 +1,175 @@
+@import 'tailwindcss';
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family:
+    Roboto,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial;
+  @apply text-sky-900;
+}
+
+/* PRIMEVUE OVERRIDES */
+:root,
+:host {
+  /* Primary base colors */
+  --p-primary-color: theme('colors.sky.500') !important;
+  --p-primary-color-hover: theme('colors.sky.600') !important;
+  --p-primary-color-active: theme('colors.sky.700') !important;
+  --p-primary-color-contrast: theme('colors.white') !important;
+
+  /* Primary focus outline */
+  --p-primary-50: theme('colors.sky.50') !important;
+  --p-primary-100: theme('colors.sky.100') !important;
+  --p-primary-200: theme('colors.sky.200') !important;
+  --p-primary-300: theme('colors.sky.300') !important;
+  --p-primary-400: theme('colors.sky.400') !important;
+  --p-primary-500: theme('colors.sky.500') !important;
+  --p-primary-600: theme('colors.sky.600') !important;
+  --p-primary-700: theme('colors.sky.700') !important;
+  --p-primary-800: theme('colors.sky.800') !important;
+  --p-primary-900: theme('colors.sky.900') !important;
+  --p-primary-950: theme('colors.sky.950') !important;
+
+  /* Additional PrimeVue usage */
+  --p-primary-highlight: theme(
+    'colors.sky.100'
+  ) !important; /* used for table highlight, focus bg */
+  --p-primary-border: theme('colors.sky.300') !important; /* used for borders in some components */
+  --p-primary-ring: theme('colors.sky.200') !important; /* focus ring */
+
+  /* Text */
+  --p-text-color: theme('colors.gray.900') !important;
+  --p-text-muted-color: theme('colors.gray.500') !important;
+  --p-text-hover-color: theme('colors.gray.700') !important;
+
+  /* Border */
+  --p-border-color: theme('colors.gray.300') !important;
+  --p-focus-ring-color: theme('colors.sky.500') !important;
+
+  /* Button */
+  --p-button-primary-background: var(--p-primary-color) !important;
+  --p-button-primary-border-color: var(--p-primary-color) !important;
+  --p-button-primary-hover-background: var(--p-primary-color-hover) !important;
+  --p-button-primary-active-background: var(--p-primary-color-active) !important;
+  --p-button-primary-color: var(--p-primary-contrast-color) !important;
+
+  /* Input */
+  --p-input-border-color: theme('colors.gray.300') !important;
+  --p-input-hover-border-color: theme('colors.gray.400') !important;
+  --p-input-focus-border-color: theme('colors.sky.500') !important;
+  --p-input-focus-ring-color: theme('colors.sky.200') !important;
+
+  /* Overlay Elements (menus, dropdowns, dialog) */
+  --p-overlay-background: theme('colors.white') !important;
+  --p-overlay-border-color: theme('colors.gray.200') !important;
+  --p-overlay-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+
+  /* Radius system */
+  --p-border-radius: theme('borderRadius.md') !important;
+  --p-border-radius-sm: theme('borderRadius.sm') !important;
+  --p-border-radius-lg: theme('borderRadius.lg') !important;
+  --p-border-radius-xl: theme('borderRadius.xl') !important;
+
+  /* Transition */
+  --p-transition-duration: 150ms !important;
+}
+
+/* Field validity states */
+.field-invalid .p-inputtext {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08) !important;
+}
+
+.field-valid .p-inputtext {
+  box-shadow: none !important;
+}
+
+.p-inputtext {
+  @apply appearance-none border border-white/10 w-full outline-0 bg-white/10 text-black placeholder:text-gray-400/70 rounded-3xl shadow-sm;
+}
+
+.p-iconfield {
+  @apply text-gray-400/70 shadow-md rounded-3xl;
+  .p-inputicon {
+    @apply text-inherit pl-1;
+  }
+  .p-inputtext {
+    @apply appearance-none border border-white/10 w-full bg-white/10 text-gray-500 placeholder:text-gray-400/70 rounded-3xl shadow-sm;
+  }
+}
+
+.p-button {
+  @apply shadow-lg! w-full! rounded-3xl! bg-sky-400! hover:bg-sky-500! border-0! text-white!;
+  &.reverse {
+    @apply bg-white! text-sky-400! hover:text-sky-500! border-sky-400! hover:border-sky-500! border-2!;
+  }
+}
+
+/* COMPONENTS */
+.login-wrapper {
+  @apply h-screen flex items-center justify-center bg-blue-400;
+  .login-form {
+    @apply px-8 py-12 flex flex-col items-center gap-6 w-full rounded-2xl bg-white border border-sky-500/50 shadow-[0_0_10px_#0EA5E980] max-w-md;
+  }
+  .login-form-title-wrapper {
+    @apply flex flex-col items-center gap-4 w-full;
+    .login-form-title {
+      @apply flex flex-col gap-2 w-full text-sky-500/80;
+      .header-medium-3xl {
+        @apply text-sky-500;
+      }
+    }
+  }
+  .login-form-body-wrapper {
+    @apply flex flex-col items-center gap-8 w-full;
+    .login-form-body {
+      @apply flex flex-col gap-6 w-full;
+    }
+  }
+}
+
+/* UTILITIES */
+.header-medium-3xl {
+  @apply text-center text-3xl font-medium leading-tight;
+}
+
+.clickable {
+  @apply cursor-pointer;
+}
+
+.hoverable-white {
+  @apply text-sky-500/80 hover:text-sky-500/90;
+}
+
+.table-link-button {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: left;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.table-link-button:hover {
+  color: #0ea5e9;
+}
+
+.form-wrapper {
+  width: 100%;
+}
