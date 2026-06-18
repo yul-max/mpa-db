@@ -25,12 +25,30 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 
 ## Documentation
 
-- [Component Architecture Overview](docs/COMPONENTS.md)
+### Getting Started
+
+- [Development Guide](docs/DEVELOPMENT_GUIDE.md) - How to add new features and work with the codebase
+
+### Architecture & Core Systems
+
+- [Component Architecture Overview](docs/COMPONENTS.md) - Component structure and patterns
+- [API Layer](docs/API_LAYER.md) - HTTP communication, token refresh, and API endpoints
+- [State Management](docs/STATE_MANAGEMENT.md) - Pinia stores and state management
+- [Form System](docs/FORM_SYSTEM.md) - Form validation, field types, and form components
+- [Composables](docs/COMPOSABLES.md) - Reusable Vue 3 composition functions
+- [Routing](docs/ROUTING.md) - Navigation, route configuration, and guards
+- [Utilities](docs/UTILITIES.md) - Helper functions and common utilities
+
+### Component Documentation
+
 - [Component Docs Index](docs/components/README.md)
 - [Auth Components](docs/components/auth.md)
 - [MPA Components](docs/components/mpa.md)
 - [User Components](docs/components/users.md)
 - [Shared UI Components](docs/components/ui.md)
+
+### Other
+
 - In-app technical docs page: run `npm run dev` and open `/technical-docs`
 
 ## Project Setup
