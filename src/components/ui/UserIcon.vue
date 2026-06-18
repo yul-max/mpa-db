@@ -16,7 +16,7 @@ import { useAuthStore } from '@/stores/auth'
 const authStore = useAuthStore()
 
 const initials = computed(() => {
-  const firstName = authStore.user?.user_name || ''
+  const firstName = authStore.user?.first_name || ''
   const lastName = authStore.user?.last_name || ''
   const first = firstName.charAt(0).toUpperCase()
   const last = lastName.charAt(0).toUpperCase()

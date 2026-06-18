@@ -114,7 +114,9 @@
               </div>
             </div>
           </template>
-          <slot v-else :name="activeTabSlotName" />
+          <div v-else :key="activeTabSlotName">
+            <slot :name="activeTabSlotName" />
+          </div>
         </div>
       </div>
     </template>

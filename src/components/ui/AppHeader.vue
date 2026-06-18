@@ -122,7 +122,7 @@ const headerComponents = shallowRef([
     id: 'user-icon',
     component: UserIcon,
     props: {},
-    show: () => !!userLoggedIn.value && (authStore.user.user_type === 1 || authStore.user.user_type === 2),
+    show: () => !!userLoggedIn.value,
     onClick: () => {
       userMenuRef.value?.openMenu();
     }

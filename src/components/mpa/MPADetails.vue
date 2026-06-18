@@ -11,7 +11,7 @@
     back-link="/mpa"
     back-label="Back to MPAs"
     :mode="isEditing ? 'edit' : 'view'"
-    :show-edit="!isPending"
+    :show-edit="canEdit"
     :disable-save="isSaving || !isEditDirty"
     @edit="startEdit"
     @cancel="requestCancelEdit"
@@ -40,6 +40,16 @@
 
     <template #tab-history>
       <div class="ordinance-history">
+        <div class="ordinance-header">
+          <button
+            type="button"
+            class="add-ordinance-button"
+            @click="openAddOrdinanceModal"
+          >
+            <FontAwesomeIcon :icon="['fas', 'plus']" />
+            Add related document
+          </button>
+        </div>
         <div v-if="ordinancesLoading" class="ordinance-loading">Loading history...</div>
         <DataTable
           v-else
@@ -69,6 +79,37 @@
         </DataTable>
         <div v-if="!ordinancesLoading && ordinances.length === 0" class="ordinance-empty">
           No history records found.
+        </div>
+      </div>
+    </template>
+
+    <template #tab-monitoring>
+      <div class="meat-scores">
+        <div class="meat-scores-header">
+          <button
+            type="button"
+            class="add-meat-score-button"
+            @click="openMEATForm"
+          >
+            <FontAwesomeIcon :icon="['fas', 'plus']" />
+            Add MEAT Score Entry
+          </button>
+        </div>
+        <div v-if="meatScoresLoading" class="ordinance-loading">Loading MEAT scores...</div>
+        <DataTable
+          v-else
+          :value="meatScores"
+          sort-field="year"
+          :sort-order="-1"
+          class="ordinance-table"
+          striped-rows
+        >
+          <Column field="year" header="Year" sortable style="width: 120px" />
+          <Column field="level" header="Level" sortable style="width: 150px" />
+          <Column field="score" header="Score" sortable />
+        </DataTable>
+        <div v-if="!meatScoresLoading && meatScores.length === 0" class="ordinance-empty">
+          No MEAT scores found.
         </div>
       </div>
     </template>
@@ -208,6 +249,7 @@ import { updateMPA, fetchOrdinances, approvePendingMPA, rejectPendingMPA } from 
 import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse, type BarangayApiResponse } from '@/stores/options';
 import { useProvinceOptions, useMunicipalityOptions, useBarangayOptions } from '@/composables/useDropdownOptions';
 import { useUsersStore } from '@/stores/users';
+import { useAuthStore } from '@/stores/auth';
 
 interface FieldConfig {
   key: string;
@@ -231,17 +273,29 @@ interface Ordinance {
   attach: string | null;
 }
 
+interface MEATScore {
+  id: number;
+  mpa_id: number;
+  year: number;
+  level: string;
+  score: number | string;
+}
+
 
 const route = useRoute();
 const router = useRouter();
 const mpaStore = useMPAStore();
 const { mpaData, pendingMpaData, loading } = storeToRefs(mpaStore);
 const optionsStore = useOptionsStore();
+const authStore = useAuthStore();
 const usersStore = useUsersStore();
 const { list: usersList } = storeToRefs(usersStore);
 
 // Detect if this is a pending MPA based on route
 const isPending = computed(() => route.meta.pending === true || route.name === 'mpas-pending-details');
+
+// Check if user can edit (not pending and not a Viewer)
+const canEdit = computed(() => !isPending.value && authStore.user?.user_type !== 3);
 
 // Use the appropriate data source
 const currentData = computed(() => isPending.value ? pendingMpaData.value : mpaData.value);
@@ -264,6 +318,8 @@ const pendingRoute = ref<RouteLocationRaw | null>(null);
 
 const ordinances = ref<Ordinance[]>([]);
 const ordinancesLoading = ref(false);
+const meatScores = ref<MEATScore[]>([]);
+const meatScoresLoading = ref(false);
 const previewUrl = ref<string | null>(null);
 const previewTitle = ref('');
 const externalLinkConfirmOpen = ref(false);
@@ -292,6 +348,31 @@ const previewFileType = computed((): 'pdf' | 'image' | 'unsupported' => {
 const ordinanceTypeLabel = (type: number): string => {
   const labels: Record<number, string> = { 1: 'Legislation', 2: 'Remarks', 3: 'Award' };
   return labels[type] ?? 'Unknown';
+};
+
+const mpaTypeLabel = (type: number | string | null | undefined): string => {
+  if (type === null || type === undefined) return 'N/A';
+
+  // If it's already a string that's not a number, return it as-is (older records)
+  if (typeof type === 'string' && isNaN(parseInt(type, 10))) {
+    return type;
+  }
+
+  // Convert to number and map to label
+  const typeNum = typeof type === 'string' ? parseInt(type, 10) : type;
+  const labels: Record<number, string> = {
+    1: 'Corals',
+    2: 'Mangrove',
+    3: 'Seagrass',
+    4: 'Sandy Bottom',
+    5: 'Deep Water',
+    6: 'Island',
+    7: 'Islet',
+    8: 'Wetland',
+    9: 'Beach Forest',
+    10: 'Seaweeds'
+  };
+  return labels[typeNum] ?? 'Unknown';
 };
 
 const openFilePreview = (row: Ordinance) => {
@@ -334,6 +415,15 @@ const cancelOpenExternalLink = () => {
 const closePreview = () => {
   previewUrl.value = null;
   previewTitle.value = '';
+};
+
+const openMEATForm = () => {
+  window.open('https://docs.google.com/forms/d/e/1FAIpQLScoV5fvHaPjUtazeakqvx771Amk5FyKI1CcdqZXrT6AnD7zAw/viewform', '_blank', 'noopener,noreferrer');
+};
+
+const openAddOrdinanceModal = () => {
+  // TODO: Implement add ordinance modal
+  console.log('Add ordinance modal');
 };
 
 const onKeyDown = (e: KeyboardEvent) => {
@@ -439,7 +529,12 @@ const cancelReject = () => {
 
 const detailsTitle = computed(() => {
   const source = isEditing.value ? editPayload.value : currentData.value;
-  return source?.complete_name || (isPending.value ? 'Pending MPA Details' : 'MPA Details');
+  if (!source) return isPending.value ? 'Pending MPA Details' : 'MPA Details';
+
+  const mpaId = isPending.value ? (source.staging_id || 'N/A') : (source.id || 'N/A');
+  const mpaName = source?.complete_name || '';
+
+  return mpaName ? `MPA-${mpaId} ${mpaName}` : (isPending.value ? 'Pending MPA Details' : 'MPA Details');
 });
 
 // Helper to format timestamp to human-readable date
@@ -546,11 +641,21 @@ const mpaDetailsTabs = [
   {
     label: 'Basic Information',
     icon: ['fas', 'book-open'],
-    sections: ['Basic Information', 'Location', 'Coordinates', 'Area Information', 'Management & Planning']
+    sections: ['Basic Information', 'Location', 'Coordinates', 'Area Information']
   },
   {
     label: 'History',
     icon: ['fas', 'clock-rotate-left'],
+    sections: []
+  },
+  {
+    label: 'Management',
+    icon: ['fas', 'users'],
+    sections: ['Management & Planning']
+  },
+  {
+    label: 'Monitoring',
+    icon: ['fas', 'chart-line'],
     sections: []
   }
 ];
@@ -562,7 +667,7 @@ const mpaDetailsSections: SectionConfig[] = [
       { key: 'complete_name', label: 'Name' },
       { key: 'year_established', label: 'Year Established', type: 'number' },
       { key: 'date_established', label: 'Date Established', type: 'date' },
-      { key: 'type', label: 'Type' },
+      { key: 'type', label: 'Type', formatter: mpaTypeLabel },
       { key: 'status', label: 'Status' }
     ]
   },
@@ -596,7 +701,7 @@ const mpaDetailsSections: SectionConfig[] = [
       { key: 'mpa_plan', label: 'MPA Plan' },
       { key: 'network', label: 'Network' }
     ]
-  },
+  }
 ];
 
 const editFieldsWithOptions = computed(() =>
@@ -707,6 +812,9 @@ const loadData = async () => {
           attach: (o.attach ?? o.link ?? null) as string | null
         }));
     }
+    // TODO: Fetch MEAT scores from API when available
+    meatScoresLoading.value = false;
+    meatScores.value = [];
   } catch (error) {
     console.error('Error fetching MPA details:', error);
   }
@@ -720,6 +828,7 @@ watch(
     if (newId !== oldId) {
       isEditing.value = false;
       ordinances.value = [];
+      meatScores.value = [];
       loadData();
     }
   }
@@ -849,6 +958,31 @@ onBeforeRouteLeave((to) => {
   width: 100%;
 }
 
+.ordinance-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.add-ordinance-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-ordinance-button:hover {
+  background-color: #2563eb;
+}
+
 .ordinance-loading,
 .ordinance-empty {
   padding: 2rem;
@@ -887,6 +1021,36 @@ onBeforeRouteLeave((to) => {
 .ordinance-download:hover {
   color: #2563eb;
   background-color: #eff6ff;
+}
+
+/* ── MEAT Scores ──────────────────────────────────────── */
+.meat-scores {
+  width: 100%;
+}
+
+.meat-scores-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.add-meat-score-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-meat-score-button:hover {
+  background-color: #2563eb;
 }
 
 /* ── File preview modal ────────────────────────────────── */

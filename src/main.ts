@@ -11,7 +11,7 @@ import './styles/main.css';
 
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faBookOpen, faUsers, faPlus, faHouse, faSignOutAlt, faChevronRight, faColumns, faLock, faLockOpen, faCheck, faX, faFileZipper, faChevronDown, faChevronUp, faDownload, faArrowLeft, faEdit, faPenToSquare, faUpload, faSort, faSortUp, faSortDown, faFilter, faLocationArrow, faTimes, faMapMarkedAlt, faClockRotateLeft, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
+import { faBookOpen, faUsers, faPlus, faHouse, faSignOutAlt, faChevronRight, faColumns, faLock, faLockOpen, faCheck, faX, faFileZipper, faChevronDown, faChevronUp, faDownload, faArrowLeft, faEdit, faPenToSquare, faUpload, faSort, faSortUp, faSortDown, faFilter, faLocationArrow, faTimes, faMapMarkedAlt, faClockRotateLeft, faCircleInfo, faChartLine } from '@fortawesome/free-solid-svg-icons';
 
 library.add(
   faBookOpen,
@@ -41,7 +41,8 @@ library.add(
   faTimes,
   faMapMarkedAlt,
   faClockRotateLeft,
-  faCircleInfo
+  faCircleInfo,
+  faChartLine
 );
 
 

@@ -42,6 +42,7 @@ import type { SignupPayload } from '@/types/forms'
 import type { FieldDef } from '@/types/form'
 import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse } from '@/stores/options'
 import { useProvinceOptions, useMunicipalityOptions } from '@/composables/useDropdownOptions'
+import { useAuthStore } from '@/stores/auth'
 
 defineProps<{
   onSuccess?: () => void | Promise<void>
@@ -50,6 +51,7 @@ defineProps<{
 defineEmits(['switch-to-login', 'cancel'])
 
 const optionsStore = useOptionsStore()
+const authStore = useAuthStore()
 const formRef = ref<{ payload?: Record<string, unknown> } | null>(null)
 
 // Get raw options from store
@@ -97,54 +99,15 @@ const signupSchema = z.object({
   passwd: z.string(),
   confirmPassword: z.string(),
 })
-// .superRefine((data, ctx) => {
-//   const pw = data.passwd || ''
-//   if (pw.length > 0) {
-//     if (pw.length < 8) {
-//       ctx.addIssue({
-//         code: z.ZodIssueCode.custom,
-//         path: ['password'],
-//         message: 'Password must be at least 8 characters',
-//       })
-//     }
-//     if (!/[A-Z]/.test(pw)) {
-//       ctx.addIssue({
-//         code: z.ZodIssueCode.custom,
-//         path: ['password'],
-//         message: 'Password must contain at least one uppercase letter',
-//       })
-//     }
-//     if (!/[a-z]/.test(pw)) {
-//       ctx.addIssue({
-//         code: z.ZodIssueCode.custom,
-//         path: ['password'],
-//         message: 'Password must contain at least one lowercase letter',
-//       })
-//     }
-//     if (!/[0-9]/.test(pw)) {
-//       ctx.addIssue({
-//         code: z.ZodIssueCode.custom,
-//         path: ['password'],
-//         message: 'Password must contain at least one number',
-//       })
-//     }
-//     if (!/[^A-Za-z0-9]/.test(pw)) {
-//       ctx.addIssue({
-//         code: z.ZodIssueCode.custom,
-//         path: ['password'],
-//         message: 'Password must contain at least one symbol',
-//       })
-//     }
-//   }
-
-//   if (data.passwd !== data.confirmPassword) {
-//     ctx.addIssue({
-//       code: z.ZodIssueCode.custom,
-//       path: ['confirmPassword'],
-//       message: 'Passwords must match',
-//     })
-//   }
-// })
+.superRefine((data, ctx) => {
+  if (data.passwd && data.confirmPassword && data.passwd !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['confirmPassword'],
+      message: 'Passwords must match',
+    })
+  }
+})
 
 const initialValues: SignupPayload = reactive({
   first_name: '',
@@ -221,8 +184,14 @@ const fieldsConfig = computed((): FieldDef[] => {
     {
       name: 'user_type',
       label: 'User Type',
-      type: 'text' as const,
+      type: 'select' as const,
+      placeholder: 'Select user type',
       validateOnInput: true,
+      options: [
+        { value: 1, label: 'Administrator' },
+        { value: 2, label: 'Contributor' },
+        { value: 3, label: 'Viewer' },
+      ],
     },
     {
       name: 'passwd',
@@ -256,10 +225,32 @@ const handleFieldChange = (fieldName: string, value: unknown) => {
 
 const handleSignUp = async (values: Record<string, unknown>) => {
   try {
-    const result = await createUser(values as SignupPayload)
+    const signupPayload = values as SignupPayload
+    const result = await createUser(signupPayload)
+
+    if (result.success !== false) {
+      // Automatically log in the user after successful signup
+      try {
+        await authStore.login({
+          username: signupPayload.user_name,
+          password: signupPayload.passwd
+        })
+        return {
+          success: true,
+          message: 'Account created successfully! You are now logged in.'
+        }
+      } catch (loginError) {
+        console.error('Auto-login failed:', loginError)
+        return {
+          success: true,
+          message: 'Account created successfully! Please log in.'
+        }
+      }
+    }
+
     return {
-      success: result.success !== false,
-      message: result.success !== false ? 'Account created successfully!' : result.message || 'Signup failed. Please try again.'
+      success: false,
+      message: result.message || 'Signup failed. Please try again.'
     }
   } catch (error) {
     console.error('Signup failed:', error)

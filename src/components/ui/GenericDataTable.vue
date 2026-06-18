@@ -263,7 +263,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const authStore = useAuthStore();
 const showCreateButton = computed(() => {
-  return !!authStore.user;
+  return !!authStore.user && (authStore.user.user_type === 1 || authStore.user.user_type === 2);
 });
 
 const emit = defineEmits<Emits>();

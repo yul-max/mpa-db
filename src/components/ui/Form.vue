@@ -21,9 +21,8 @@
 
             <!-- Confirm password live match indicator (signup form) -->
             <div v-if="field.name === 'confirmPassword'" class="match-indicator">
-              <template v-if="(touched as any)[field.name] && ((payload as any).password || (payload as any).confirmPassword)">
-                <span v-if="(payload as any).password === (payload as any).confirmPassword" class="match-ok">✓ Passwords match</span>
-                <span v-else class="match-bad">✗ Passwords do not match</span>
+              <template v-if="(touched as any)[field.name] && ((payload as any).passwd || (payload as any).confirmPassword)">
+                <span v-if="(payload as any).passwd !== (payload as any).confirmPassword" class="match-bad">✗ Passwords do not match</span>
               </template>
             </div>
           </div>
