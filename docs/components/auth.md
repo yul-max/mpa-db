@@ -24,7 +24,7 @@ Authentication UI components that handle login, signup, and logged-in user actio
 - Drawer container that hosts `LoginForm` and `SignupForm`.
 - Switches between auth modes via child-emitted events and resets to login on close.
 - Exposes: `openDrawer()`, `closeDrawer()`.
-- Key internals: `isOpen` (ref), `currentForm` (ref\<'login' | 'signup'\>), `handleSuccess()` (waits 1.5 s then closes).
+- Key internals: `isOpen` (ref), `currentForm` (ref\<'login' | 'signup'\>), `handleSuccess()` (waits 1.5 seconds then closes).
 
 ### `SignupForm.vue`
 

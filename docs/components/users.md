@@ -13,7 +13,7 @@ User management UI components for listing, viewing, and creating user accounts. 
 ### `AddUserForm.vue`
 
 - Modal form for creating users with sections for Account Info, Location, and Account Type.
-- Includes dirty-state confirmation on cancellation via `ConfirmModal`.
+- Includes dirty-state confirmation on cancelation via `ConfirmModal`.
 - Emits: `submit`, `close`.
 - Exposes: `open()`, `close()`.
 - Composables: `useForm` (manages `payload`, `errors`, `isFormValid`, `isSubmitting`).
