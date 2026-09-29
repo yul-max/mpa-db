@@ -506,6 +506,9 @@ const getFilterProps = (col: ColumnDef) => {
       optionLabel: 'label',
       optionValue: 'value',
       display: 'chip',
+      filter: true,
+      autoFilterFocus: true,
+      filterPlaceholder: 'Type to search...',
       showToggleAll: false
     };
   }

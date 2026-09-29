@@ -2,6 +2,8 @@
 export { default as InputTextField } from './InputTextField.vue';
 export { default as PasswordTextField } from './PasswordTextField.vue';
 export { default as DropdownField } from './DropdownField.vue';
+export { default as SearchSelectField } from './SearchSelectField.vue';
+export { default as MultiSelectField } from './MultiSelectField.vue';
 export { default as CheckboxField } from './CheckboxField.vue';
 export { default as SwitchField } from './SwitchField.vue';
 export { default as FileUploadField } from './FileUploadField.vue';

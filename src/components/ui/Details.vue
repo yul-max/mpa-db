@@ -257,6 +257,8 @@ const canEdit = computed(() => !!authStore.user && props.showEdit);
 const componentRegistry = {
   InputTextField: defineAsyncComponent(() => import('@/components/ui/fields/InputTextField.vue')),
   DropdownField: defineAsyncComponent(() => import('@/components/ui/fields/DropdownField.vue')),
+  SearchSelectField: defineAsyncComponent(() => import('@/components/ui/fields/SearchSelectField.vue')),
+  MultiSelectField: defineAsyncComponent(() => import('@/components/ui/fields/MultiSelectField.vue')),
   SwitchField: defineAsyncComponent(() => import('@/components/ui/fields/SwitchField.vue')),
   FileUploadField: defineAsyncComponent(() => import('@/components/ui/fields/FileUploadField.vue'))
 } as const;

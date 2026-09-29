@@ -11,15 +11,15 @@ export const editFields: EditFieldDef[] = [
   { key: 'date_established', component: 'InputTextField', props: { type: 'date', placeholder: 'YYYY-MM-DD' } },
   { key: 'type', component: 'InputTextField', props: { type: 'number', placeholder: 'Enter type' } },
   { key: 'status', component: 'InputTextField', props: { placeholder: 'Enter status' } },
-  { key: 'province', component: 'DropdownField', props: { options: [], placeholder: 'Select province' } },
+  { key: 'province', component: 'SearchSelectField', props: { options: [], placeholder: 'Select province' } },
   {
     key: 'municipality',
-    component: 'DropdownField',
+    component: 'SearchSelectField',
     props: (payload) => ({ options: [], placeholder: 'Select municipality', disabled: !payload.province })
   },
   {
     key: 'barangay',
-    component: 'DropdownField',
+    component: 'SearchSelectField',
     props: (payload) => ({ options: [], placeholder: 'Select barangay', disabled: !payload.municipality })
   },
   { key: 'core_area', component: 'InputTextField', props: { type: 'number', placeholder: 'Enter core area' } },

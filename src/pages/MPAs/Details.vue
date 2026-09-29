@@ -1,5 +1,7 @@
 <template>
-  <MPADetails />
+  <div class="page-root">
+    <MPADetails />
+  </div>
 </template>
 
 <script setup lang="ts">

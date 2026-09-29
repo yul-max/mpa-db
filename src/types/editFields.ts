@@ -1,4 +1,4 @@
-export type EditFieldComponent = 'InputTextField' | 'DropdownField' | 'SwitchField' | 'FileUploadField';
+export type EditFieldComponent = 'InputTextField' | 'DropdownField' | 'SearchSelectField' | 'MultiSelectField' | 'SwitchField' | 'FileUploadField';
 
 export interface EditFieldDef {
   key: string;

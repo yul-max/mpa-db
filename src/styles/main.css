@@ -117,6 +117,34 @@ body {
   }
 }
 
+/* MultiSelect/Select overlay filter input: undo the global pill-style .p-inputtext
+   so the search box matches standard field styling */
+.p-multiselect-overlay .p-multiselect-filter.p-inputtext,
+.p-select-overlay .p-select-filter.p-inputtext {
+  appearance: none;
+  width: 100%;
+  background-color: #ffffff;
+  color: #1f2937;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  box-shadow: none;
+  transition: border-color 0.2s;
+}
+
+.p-multiselect-overlay .p-multiselect-filter.p-inputtext:focus,
+.p-select-overlay .p-select-filter.p-inputtext:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.p-multiselect-overlay .p-multiselect-filter.p-inputtext::placeholder,
+.p-select-overlay .p-select-filter.p-inputtext::placeholder {
+  color: #9ca3af;
+}
+
 /* COMPONENTS */
 .login-wrapper {
   @apply h-screen flex items-center justify-center bg-blue-400;

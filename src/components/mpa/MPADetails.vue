@@ -245,9 +245,9 @@ import MapModal from '@/components/ui/MapModal.vue';
 import Dropdown from '@/components/ui/Dropdown.vue';
 import type { DropdownItem } from '@/types/dropdown';
 import { useMPAStore, editFields } from '@/stores/mpa';
-import { updateMPA, fetchOrdinances, approvePendingMPA, rejectPendingMPA } from '@/api/mpa';
-import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse, type BarangayApiResponse } from '@/stores/options';
-import { useProvinceOptions, useMunicipalityOptions, useBarangayOptions } from '@/composables/useDropdownOptions';
+import { updateMPA, fetchOrdinances, approvePendingMPA, rejectPendingMPA, fetchBarangays } from '@/api/mpa';
+import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse, type BarangayApiResponse, type DropdownOption } from '@/stores/options';
+import { useProvinceOptions, useMunicipalityOptions } from '@/composables/useDropdownOptions';
 import { useUsersStore } from '@/stores/users';
 import { useAuthStore } from '@/stores/auth';
 
@@ -306,7 +306,6 @@ const currentData = computed(() => isPending.value ? pendingMpaData.value : mpaD
 // Get raw options from store
 const provinces = computed(() => (optionsStore.options.provinces || []) as ProvinceApiResponse[]);
 const municipalities = computed(() => (optionsStore.options.municipalities || []) as MunicipalityApiResponse[]);
-const barangays = computed(() => (optionsStore.options.barangays || []) as BarangayApiResponse[]);
 
 // Transform to dropdown options
 const provinceOptions = useProvinceOptions(provinces);
@@ -545,10 +544,12 @@ const cancelReject = () => {
 
 const detailsTitle = computed(() => {
   const source = isEditing.value ? editPayload.value : currentData.value;
-  if (!source) return isPending.value ? 'Pending MPA Details' : 'MPA Details';
+  // id/staging_id are not part of the edit payload, so always read them from the loaded record
+  const record = currentData.value;
+  if (!source || !record) return isPending.value ? 'Pending MPA Details' : 'MPA Details';
 
-  const mpaId = isPending.value ? (source.staging_id || 'N/A') : (source.id || 'N/A');
-  const mpaName = source?.complete_name || '';
+  const mpaId = isPending.value ? (record.staging_id || 'N/A') : (record.id || 'N/A');
+  const mpaName = source?.complete_name || record.complete_name || '';
 
   return mpaName ? `MPA-${mpaId} ${mpaName}` : (isPending.value ? 'Pending MPA Details' : 'MPA Details');
 });
@@ -575,7 +576,9 @@ const formatDate = (dateString: string | null | undefined): string => {
 
 const detailsSubtitle = computed(() => {
   const source = isEditing.value ? editPayload.value : currentData.value;
-  if (!source) return '';
+  // Audit metadata is not part of the edit payload, so always read it from the loaded record
+  const record = currentData.value;
+  if (!source || !record) return '';
 
   const locationParts: string[] = [];
   if (source.barangay) locationParts.push(`Brgy. ${source.barangay}`);
@@ -591,13 +594,13 @@ const detailsSubtitle = computed(() => {
   void usersList.value;
 
   if (isPending.value) {
-    const uploadedByName = usersStore.getUserFullName(source.uploaded_by);
+    const uploadedByName = usersStore.getUserFullName(record.uploaded_by as string | number | null | undefined);
     return `${subtitle}\nStatus: Pending Approval\nUploaded by: ${uploadedByName}`;
   }
 
-  const uploadedByName = usersStore.getUserFullName(source.uploaded_by);
-  const approvedByName = usersStore.getUserFullName(source.approved_by);
-  const approvedAt = formatDate(source.approved_at);
+  const uploadedByName = usersStore.getUserFullName(record.uploaded_by as string | number | null | undefined);
+  const approvedByName = usersStore.getUserFullName(record.approved_by as string | number | null | undefined);
+  const approvedAt = formatDate(record.approved_at as string | null | undefined);
   return `${subtitle}\nUploaded by: ${uploadedByName}\nApproved by: ${approvedByName} at ${approvedAt}`;
 });
 
@@ -752,20 +755,58 @@ const editFieldsWithOptions = computed(() =>
       if (field.key === 'barangay') {
         return {
           ...field,
-          props: (payload: Record<string, any>) => {
-            // Find the municipality ID from the municipality name
-            const municipality = municipalities.value.find(m => m.name === payload.municipality);
-            const barangayOpts = useBarangayOptions(barangays, municipality?.id);
-            return {
-              options: barangayOpts.value,
-              placeholder: 'Select barangay',
-              disabled: !payload.municipality
-            };
-          }
+          props: (payload: Record<string, any>) => ({
+            options: barangayOptions.value,
+            placeholder: 'Select barangay',
+            disabled: !payload.municipality
+          })
         };
       }
       return field;
     })
+);
+
+// Barangay options are fetched from the /barangays endpoint per selected municipality.
+// payload.municipality may hold a name (loaded record) or an id (user selection).
+const barangayOptions = ref<DropdownOption[]>([]);
+
+const resolveMunicipalityId = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const municipality =
+    municipalities.value.find((m) => m.name === value) ??
+    municipalities.value.find((m) => String(m.id) === String(value));
+  return municipality?.id;
+};
+
+watch(
+  () => editPayload.value.municipality,
+  async (municipality, previousMunicipality) => {
+    // Clear a stale barangay selection when the municipality changes mid-edit
+    if (previousMunicipality !== undefined && previousMunicipality !== '' && municipality !== previousMunicipality) {
+      editPayload.value.barangay = '';
+    }
+
+    const municipalityId = resolveMunicipalityId(municipality);
+    if (municipalityId === undefined) {
+      barangayOptions.value = [];
+      return;
+    }
+
+    try {
+      const { data } = await fetchBarangays(municipalityId);
+      // Ignore stale responses from earlier selections
+      if (editPayload.value.municipality !== municipality) return;
+
+      const items = (Array.isArray(data) ? data : []) as BarangayApiResponse[];
+      barangayOptions.value = items
+        .filter((item) => item.name != null && item.name !== '')
+        .map((item) => ({ label: item.name, value: String(item.id) }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    } catch (error) {
+      console.error('Failed to fetch barangays:', error);
+      barangayOptions.value = [];
+    }
+  }
 );
 
 window.addEventListener('keydown', onKeyDown);

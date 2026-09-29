@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useNavigationLoading } from '@/composables/useNavigationLoading';
 
 /**
  * Application routes are grouped under the app layout to keep a single shell
@@ -43,6 +44,27 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth && (!auth.user || !auth.isAuthenticated)) {
     return { name: 'dashboard' };
   }
+});
+
+/**
+ * Navigation loading indicator:
+ * show while a page navigation is in flight (lazy chunk loading, guards),
+ * hide once it settles or fails.
+ */
+const { isNavigating } = useNavigationLoading();
+
+router.beforeEach((to, from) => {
+  if (to.path !== from.path) {
+    isNavigating.value = true;
+  }
+});
+
+router.afterEach(() => {
+  isNavigating.value = false;
+});
+
+router.onError(() => {
+  isNavigating.value = false;
 });
 
 export default router;

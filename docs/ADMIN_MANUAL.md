@@ -41,12 +41,12 @@ A comprehensive guide for administrators to perform operations in the MPA Databa
 
 ### Role Definitions
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| **Administrator** | Full system access | • Manage all users (create, edit, delete)<br>• View all MPA records<br>• Approve/reject pending MPA submissions<br>• Edit any MPA record<br>• Access admin dashboard and settings<br>• Manage user roles and permissions |
-| **Contributor** | Submit and edit own MPAs | • Submit new MPA records<br>• View all approved MPA records<br>• Edit their own submitted MPAs<br>• Upload shapefiles for MPAs<br>• Track their own submissions<br>• Cannot edit other users' MPAs<br>• Cannot approve submissions |
-| **Viewer** | Request hidden information | • View all approved MPA records<br>• Request access to hidden/sensitive data<br>• View public map dashboard<br>• Cannot submit new MPAs<br>• Cannot edit any records<br>• Can file information requests with administrators |
-| **Guest** | Read-only public access | • View public MPA data and dashboard<br>• View interactive maps<br>• No login required<br>• Cannot submit or edit records<br>• Limited to publicly released information |
+| Role              | Description                | Permissions                                                                                                                                                                                                                        |
+| ----------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Administrator** | Full system access         | • Manage all users (create, edit, delete)<br>• View all MPA records<br>• Approve/reject pending MPA submissions<br>• Edit any MPA record<br>• Access admin dashboard and settings<br>• Manage user roles and permissions           |
+| **Contributor**   | Submit and edit own MPAs   | • Submit new MPA records<br>• View all approved MPA records<br>• Edit their own submitted MPAs<br>• Upload shapefiles for MPAs<br>• Track their own submissions<br>• Cannot edit other users' MPAs<br>• Cannot approve submissions |
+| **Viewer**        | Request hidden information | • View all approved MPA records<br>• Request access to hidden/sensitive data<br>• View public map dashboard<br>• Cannot submit new MPAs<br>• Cannot edit any records<br>• Can file information requests with administrators        |
+| **Guest**         | Read-only public access    | • View public MPA data and dashboard<br>• View interactive maps<br>• No login required<br>• Cannot submit or edit records<br>• Limited to publicly released information                                                            |
 
 ### Permission System
 
@@ -64,20 +64,25 @@ import { useAuthStore } from '@/stores/auth'
 export default {
   setup() {
     const authStore = useAuthStore()
-    
+
     // Check user role
     const isAdmin = computed(() => authStore.user?.user_type === 1)
     const isContributor = computed(() => authStore.user?.user_type === 2)
     const isViewer = computed(() => authStore.user?.user_type === 3)
-    
+
     // Show UI elements conditionally
-    if (isAdmin.value) { /* show admin controls */ }
-    if (isContributor.value) { /* show upload button */ }
-  }
+    if (isAdmin.value) {
+      /* show admin controls */
+    }
+    if (isContributor.value) {
+      /* show upload button */
+    }
+  },
 }
 ```
 
 **Key Permission Checks**:
+
 - Navigation: Only Administrators see the "Users" navigation button
 - MPA Editing: Only Administrators can edit any MPA; Contributors can only edit their own
 - MPA Deletion: Only Administrators can delete records
@@ -245,12 +250,14 @@ export default {
 #### Edit Approved Record
 
 **Administrators** can edit any MPA record:
+
 1. View MPA details
 2. Click **Edit** button
 3. Modify fields as needed
 4. Click **Save**
 
 **Contributors** can only edit their own submitted MPAs:
+
 1. View MPA record you submitted
 2. Click **Edit** button (only available on your own records)
 3. Modify fields as needed
@@ -415,6 +422,7 @@ Viewers can request access to specific information that is hidden from public vi
 #### Reset Forgotten Password
 
 Contact your system administrator with:
+
 - Your username
 - Email address
 - Administrator will initiate password reset
@@ -450,6 +458,7 @@ npm run dev
 #### IDE Setup
 
 **Recommended**: VS Code with extensions:
+
 - [Vue.js DevTools](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
 - [Vetur](https://marketplace.visualstudio.com/items?itemName=octref.vetur) (disable if using official Vue extension)
 - [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
@@ -535,22 +544,18 @@ npm run preview
 Create `src/api/myFeature.ts`:
 
 ```typescript
-import api from './index';
+import api from './index'
 
-export const fetchMyFeatures = (params: any) => 
-  api.get('/my-features', { params });
+export const fetchMyFeatures = (params: any) => api.get('/my-features', { params })
 
-export const fetchMyFeature = (id: string | number) => 
-  api.get(`/my-features/${id}`);
+export const fetchMyFeature = (id: string | number) => api.get(`/my-features/${id}`)
 
-export const createMyFeature = (data: any) => 
-  api.post('/my-features', data);
+export const createMyFeature = (data: any) => api.post('/my-features', data)
 
-export const updateMyFeature = (id: string | number, data: any) => 
-  api.put(`/my-features/${id}`, data);
+export const updateMyFeature = (id: string | number, data: any) =>
+  api.put(`/my-features/${id}`, data)
 
-export const deleteMyFeature = (id: string | number) => 
-  api.delete(`/my-features/${id}`);
+export const deleteMyFeature = (id: string | number) => api.delete(`/my-features/${id}`)
 ```
 
 #### Step 2: Create Pinia Store
@@ -558,40 +563,40 @@ export const deleteMyFeature = (id: string | number) =>
 Create `src/stores/myFeature.ts`:
 
 ```typescript
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import * as myFeatureApi from '@/api/myFeature';
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import * as myFeatureApi from '@/api/myFeature'
 
 export const useMyFeatureStore = defineStore('my-feature', () => {
-  const items = ref<any[]>([]);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
+  const items = ref<any[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
   async function fetchAll(params?: any) {
-    loading.value = true;
-    error.value = null;
+    loading.value = true
+    error.value = null
     try {
-      const response = await myFeatureApi.fetchMyFeatures(params);
-      items.value = response.data;
+      const response = await myFeatureApi.fetchMyFeatures(params)
+      items.value = response.data
     } catch (err: any) {
-      error.value = err.message;
+      error.value = err.message
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
   async function create(data: any) {
     try {
-      await myFeatureApi.createMyFeature(data);
-      await fetchAll();
+      await myFeatureApi.createMyFeature(data)
+      await fetchAll()
     } catch (err: any) {
-      error.value = err.message;
-      throw err;
+      error.value = err.message
+      throw err
     }
   }
 
-  return { items, loading, error, fetchAll, create };
-});
+  return { items, loading, error, fetchAll, create }
+})
 ```
 
 #### Step 3: Create Routes
@@ -608,21 +613,21 @@ const routes = [
       {
         path: 'my-feature',
         name: 'my-feature-list',
-        component: () => import('@/pages/MyFeature/Index.vue')
+        component: () => import('@/pages/MyFeature/Index.vue'),
       },
       {
         path: 'my-feature/new',
         name: 'my-feature-new',
-        component: () => import('@/pages/MyFeature/New.vue')
+        component: () => import('@/pages/MyFeature/New.vue'),
       },
       {
         path: 'my-feature/:id',
         name: 'my-feature-details',
-        component: () => import('@/pages/MyFeature/Details.vue')
-      }
-    ]
-  }
-];
+        component: () => import('@/pages/MyFeature/Details.vue'),
+      },
+    ],
+  },
+]
 ```
 
 #### Step 4: Create Pages/Components
@@ -646,18 +651,18 @@ Create `src/pages/MyFeature/Index.vue`:
 </template>
 
 <script setup lang="ts">
-import { useMyFeatureStore } from '@/stores/myFeature';
-import { onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useMyFeatureStore } from '@/stores/myFeature'
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
-const store = useMyFeatureStore();
-const router = useRouter();
+const store = useMyFeatureStore()
+const router = useRouter()
 
 onMounted(() => {
-  store.fetchAll();
-});
+  store.fetchAll()
+})
 
-const navigateTo = (path: string) => router.push(path);
+const navigateTo = (path: string) => router.push(path)
 </script>
 ```
 
@@ -684,33 +689,31 @@ npm run test:e2e:smoke
 Create `tests/e2e/my-feature.spec.ts`:
 
 ```typescript
-import playwright from '@playwright/test';
-import { setupApiMocks } from './helpers/mockApi';
+import playwright from '@playwright/test'
+import { setupApiMocks } from './helpers/mockApi'
 
-const { test, expect } = playwright;
+const { test, expect } = playwright
 
 test.describe('My Feature', () => {
   test('displays list of features', async ({ page }) => {
-    await setupApiMocks(page, { authenticated: true, role: 'admin' });
-    
-    await page.goto('/my-feature');
-    await expect(page.getByRole('heading', { name: 'My Features' }))
-      .toBeVisible();
-  });
+    await setupApiMocks(page, { authenticated: true, role: 'admin' })
+
+    await page.goto('/my-feature')
+    await expect(page.getByRole('heading', { name: 'My Features' })).toBeVisible()
+  })
 
   test('creates new feature', async ({ page }) => {
-    await setupApiMocks(page, { authenticated: true, role: 'admin' });
-    
-    await page.goto('/my-feature');
-    await page.getByRole('button', { name: 'Create' }).click();
-    
-    await page.getByLabel('Name').fill('New Feature');
-    await page.getByRole('button', { name: 'Save' }).click();
-    
-    await expect(page.getByText('Created successfully'))
-      .toBeVisible();
-  });
-});
+    await setupApiMocks(page, { authenticated: true, role: 'admin' })
+
+    await page.goto('/my-feature')
+    await page.getByRole('button', { name: 'Create' }).click()
+
+    await page.getByLabel('Name').fill('New Feature')
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('Created successfully')).toBeVisible()
+  })
+})
 ```
 
 See [docs/PLAYWRIGHT_TESTING.md](./PLAYWRIGHT_TESTING.md) for comprehensive testing guide.
@@ -981,6 +984,7 @@ npx playwright test --debug
 ### Support
 
 For issues or questions:
+
 1. Check existing documentation
 2. Search GitHub issues for similar problems
 3. Consult development team
@@ -990,4 +994,3 @@ For issues or questions:
 
 **Last Updated**: June 2026  
 **Document Version**: 1.0
-

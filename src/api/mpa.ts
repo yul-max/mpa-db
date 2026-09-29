@@ -7,6 +7,15 @@ export const updateMPA = (id: string, data: any) => api.put(`/mpas/${id}`, data)
 export const deleteMPA = (id: string) => api.delete(`/mpas/${id}`);
 
 /**
+ * Fetch barangays, optionally filtered by municipality
+ * @param municipalityId - Optional municipality id to filter by
+ */
+export const fetchBarangays = (municipalityId?: number | string) =>
+  api.get('/barangays', {
+    params: municipalityId !== undefined && municipalityId !== '' ? { municipality_id: municipalityId } : undefined
+  });
+
+/**
  * Upload a shapefile, GeoJSON, or JSON file to create MPA(s)
  * @param file - The file to upload (.zip, .geojson, or .json)
  * @param formData - Form field overrides (complete_name, year_established, etc.)

@@ -143,13 +143,15 @@ import { useForm } from '@/composables/useForm';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
 import InputTextField from '@/components/ui/fields/InputTextField.vue';
 import DropdownField from '@/components/ui/fields/DropdownField.vue';
+import SearchSelectField from '@/components/ui/fields/SearchSelectField.vue';
+import MultiSelectField from '@/components/ui/fields/MultiSelectField.vue';
 import FileUploadField from '@/components/ui/fields/FileUploadField.vue';
 import type { EditFieldComponent } from '@/types/edit';
-import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse, type BarangayApiResponse } from '@/stores/options';
-import { useProvinceOptions, useMunicipalityOptions, useBarangayOptions } from '@/composables/useDropdownOptions';
+import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse, type BarangayApiResponse, type DropdownOption } from '@/stores/options';
+import { useProvinceOptions, useMunicipalityOptions } from '@/composables/useDropdownOptions';
 import { useAuthStore } from '@/stores/auth';
 import { useUsersStore } from '@/stores/users';
-import { uploadShapefile } from '@/api/mpa';
+import { uploadShapefile, fetchBarangays } from '@/api/mpa';
 import { ECOSYSTEM_OPTIONS } from '@/constants/ecosystem';
 
 const emit = defineEmits<{
@@ -168,7 +170,6 @@ const isAdmin = computed(() => authStore.user?.user_type === 1);
 // Get raw options from store
 const provinces = computed(() => (optionsStore.options.provinces || []) as ProvinceApiResponse[]);
 const municipalities = computed(() => (optionsStore.options.municipalities || []) as MunicipalityApiResponse[]);
-const barangays = computed(() => (optionsStore.options.barangays || []) as BarangayApiResponse[]);
 
 // Transform to dropdown options (this one doesn't depend on payload)
 const provinceOptions = useProvinceOptions(provinces);
@@ -201,6 +202,8 @@ type OrdinanceEntry = {
 const componentRegistry = {
   InputTextField,
   DropdownField,
+  SearchSelectField,
+  MultiSelectField,
   FileUploadField
 };
 
@@ -249,7 +252,7 @@ const formSections: FormSectionDef[] = [
       { key: 'complete_name', component: 'InputTextField', props: { label: 'MPA Name', placeholder: 'Enter MPA name', autocomplete: 'organization' } },
       { key: 'year_established', component: 'InputTextField', props: { label: 'Year Established', placeholder: 'e.g., 2006', type: 'number', autocomplete: 'off' } },
       { key: 'date_established', component: 'InputTextField', props: { label: 'Date Established', placeholder: 'YYYY-MM-DD', type: 'date', autocomplete: 'off' } },
-      { key: 'type', component: 'DropdownField', props: { label: 'Type', placeholder: 'Select type', options: typeOptions } }
+      { key: 'type', component: 'MultiSelectField', props: { label: 'Type', placeholder: 'Select type(s)', options: typeOptions } }
     ]
   },
   {
@@ -257,12 +260,12 @@ const formSections: FormSectionDef[] = [
     fields: [
       {
         key: 'province',
-        component: 'DropdownField',
+        component: 'SearchSelectField',
         props: { label: 'Province', placeholder: 'Select province', options: provinceOptions }
       },
       {
         key: 'municipality',
-        component: 'DropdownField',
+        component: 'SearchSelectField',
         props: (values) => ({
           label: 'Municipality',
           placeholder: 'Select municipality',
@@ -272,7 +275,7 @@ const formSections: FormSectionDef[] = [
       },
       {
         key: 'barangay',
-        component: 'DropdownField',
+        component: 'SearchSelectField',
         props: (values) => ({
           label: 'Barangay',
           placeholder: 'Select barangay',
@@ -331,8 +334,12 @@ const schema = z
       z.string().optional()
     ),
     type: z.preprocess(
-      (value) => (value === '' || value === null || value === undefined ? undefined : value),
-      z.coerce.number().int().min(1).max(10).optional()
+      (value) => {
+        if (value === '' || value === null || value === undefined) return undefined;
+        if (Array.isArray(value) && value.length === 0) return undefined;
+        return Array.isArray(value) ? value : [value];
+      },
+      z.array(z.coerce.number().int().min(1).max(10)).optional()
     ),
     status: z.string().optional().default('FOR VALIDATION'),
     province: z.string().optional(),
@@ -414,7 +421,7 @@ const initialValues = {
   complete_name: '',
   year_established: '',
   date_established: '',
-  type: '',
+  type: [] as number[],
   status: 'FOR VALIDATION',
   province: '',
   municipality: '',
@@ -448,13 +455,39 @@ const municipalityOptions = computed(() => {
   return opts.value;
 });
 
-const barangayOptions = computed(() => {
-  const municipalityName = payload.value.municipality;
-  if (!municipalityName) return [];
-  const municipality = municipalities.value.find(m => m.name === municipalityName);
-  const opts = useBarangayOptions(barangays, municipality?.id);
-  return opts.value;
-});
+const barangayOptions = ref<DropdownOption[]>([]);
+
+// Fetch barangay options from the /barangays endpoint whenever the selected
+// municipality changes (payload.municipality holds the municipality id)
+watch(
+  () => payload.value.municipality,
+  async (municipalityId, previousId) => {
+    // Clear a stale barangay selection when the municipality changes
+    if (previousId !== undefined && municipalityId !== previousId) {
+      payload.value.barangay = '';
+    }
+
+    if (!municipalityId) {
+      barangayOptions.value = [];
+      return;
+    }
+
+    try {
+      const { data } = await fetchBarangays(municipalityId as string);
+      // Ignore stale responses from earlier selections
+      if (payload.value.municipality !== municipalityId) return;
+
+      const items = (Array.isArray(data) ? data : []) as BarangayApiResponse[];
+      barangayOptions.value = items
+        .filter((item) => item.name != null && item.name !== '')
+        .map((item) => ({ label: item.name, value: String(item.id) }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    } catch (error) {
+      console.error('Failed to fetch barangays:', error);
+      barangayOptions.value = [];
+    }
+  }
+);
 
 const userOptions = computed(() =>
   usersStore.list.map((u) => ({
@@ -474,7 +507,7 @@ const moreInfoSections = computed((): FormSectionDef[] => {
       fields: [
         {
           key: 'uploaded_by',
-          component: 'DropdownField',
+          component: 'SearchSelectField',
           props: () => ({ label: 'Uploaded By', placeholder: 'Select user', options: userOptions.value })
         }
       ]
@@ -548,6 +581,7 @@ const isDirty = computed(() => {
     if (typeof value === 'boolean') return value;
     if (value === null || value === undefined) return false;
     if (typeof value === 'string') return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
     return true;
   });
 });
@@ -588,12 +622,18 @@ const handleSubmit = async () => {
         .filter(([key]) => key !== 'file')
         .filter(([key]) => key !== 'ordinance_link' && key !== 'ordinance_name')
         .filter(([, value]) => {
-          // Filter out empty strings, null, undefined, and NaN
+          // Filter out empty strings, null, undefined, NaN, and empty arrays
           if (value === '' || value === null || value === undefined) return false;
           if (typeof value === 'number' && Number.isNaN(value)) return false;
+          if (Array.isArray(value) && value.length === 0) return false;
           return true;
         })
     );
+
+    // Send multiple selected types as a comma-separated string
+    if (Array.isArray(formDataWithoutFile.type)) {
+      formDataWithoutFile.type = (formDataWithoutFile.type as Array<number | string>).join(',');
+    }
 
     const ordinances = ordinanceEntries.value
       .map((entry) => ({ link: entry.link.trim(), name: entry.name.trim() }))
