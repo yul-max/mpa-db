@@ -44,8 +44,8 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function login(payload: LoginFormPayload) {
     const resp = await loginUser(payload)
-    setAccessToken(resp.auth_token)
-    cookies.set('auth_token', resp.auth_token, { path: '/', sameSite: 'lax' })
+    setAccessToken(resp.token)
+    cookies.set('auth_token', resp.token, { path: '/', sameSite: 'lax' })
     setUser(resp.user)
 
     // Load all users after successful login for efficient lookups

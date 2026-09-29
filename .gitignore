@@ -38,3 +38,6 @@ __screenshots__/
 # Playwright
 playwright-report/
 test-results/
+
+# ENV
+.env
