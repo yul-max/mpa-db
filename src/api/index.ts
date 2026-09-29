@@ -2,8 +2,13 @@ import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
 
 
+const devStatus = import.meta.env.VITE_NODE_ENV === 'development';
+const apiBaseURL = devStatus
+  ? import.meta.env.VITE_LOCALE_URL || '/api'
+  : import.meta.env.VITE_LINODE_URL || '/api';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_LOCALE_URL || '/api',
+  baseURL: apiBaseURL,
   headers: {
     'Content-Type': 'application/json'
   }

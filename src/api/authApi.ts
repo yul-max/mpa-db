@@ -2,11 +2,10 @@ import axios from 'axios'
 import type { LoginFormPayload, SignupPayload } from '@/types/forms'
 
 const API_BASE = import.meta.env.VITE_LOCALE_URL
-const axiosPost = async (url: string, apiPayload: any) => {
-  return await axios.post(url, apiPayload, {
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+
+const axiosPost = async (url: string, apiPayload: any) => {  
+  return await axios.post(url, apiPayload, {    headers: { 'Content-Type': 'application/json' },   
+     withCredentials: true  })}
 
 export async function loginUser(payload: LoginFormPayload) {
   const url = `${API_BASE}/auth/login`
