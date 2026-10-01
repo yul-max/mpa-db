@@ -64,7 +64,7 @@ isAuthenticated // Computed: true if token exists
 **Actions:**
 
 - `login(payload)` - Login with email/password
-  - Returns: `{ auth_token, user }`
+  - Returns: `{ token, user }`
   - Side effects: Stores token/user in cookies, preloads users list
 
 - `logout()` - Clear session

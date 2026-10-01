@@ -14,9 +14,9 @@ import { useUsersStore } from './users'
  * - validate session via /me endpoint
  */
 export const useAuthStore = defineStore('auth', () => {
-  const cookies = useCookies(['auth_user', 'auth_token'])
+  const cookies = useCookies(['auth_user', 'token'])
   const user = ref<any>(cookies.get('auth_user') || null)
-  const accessToken = ref<string | null>(cookies.get('auth_token') || null)
+  const accessToken = ref<string | null>(cookies.get('token') || null)
 
   const isAuthenticated = computed(() => !!accessToken.value)
 
@@ -45,7 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(payload: LoginFormPayload) {
     const resp = await loginUser(payload)
     setAccessToken(resp.token)
-    cookies.set('auth_token', resp.token, { path: '/', sameSite: 'lax' })
+    cookies.set('token', resp.token, { path: '/', sameSite: 'lax' })
     setUser(resp.user)
 
     // Load all users after successful login for efficient lookups
@@ -58,13 +58,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /** Clear local auth session state. */
-async function logout() {
-  // await authApi.logout()
-  // accessToken.value = null
-  // user.value = null
-  cookies.remove('auth_token', { path: '/' })
-  clearUser()
-}
+  async function logout() {
+    // await authApi.logout()
+    // accessToken.value = null
+    // user.value = null
+    cookies.remove('token', { path: '/' })
+    clearUser()
+  }
 
   function setAccessToken(t: string) {
     accessToken.value = t
@@ -77,7 +77,7 @@ async function logout() {
    */
   async function verifyAuth() {
     // First check if token exists in cookies and restore it if needed
-    const tokenFromCookie = cookies.get('auth_token')
+    const tokenFromCookie = cookies.get('token')
     const userFromCookie = cookies.get('auth_user')
 
     if (tokenFromCookie && !accessToken.value) {

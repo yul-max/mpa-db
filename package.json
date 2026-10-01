@@ -16,6 +16,8 @@
     "lint": "eslint . --fix --cache",
     "format": "prettier --write src/",
     "test:e2e": "playwright test",
+    "test:e2e:pdf": "playwright test; node generate-test-report-pdf.mjs",
+    "test:report:pdf": "node generate-test-report-pdf.mjs",
     "test:e2e:smoke": "playwright test --grep \"Authentication and navigation|MPA list and create workflow\"",
     "test:e2e:full": "playwright test",
     "test:e2e:smoke:ci": "playwright test --grep \"Authentication and navigation|MPA list and create workflow\" --workers=1 --retries=2",

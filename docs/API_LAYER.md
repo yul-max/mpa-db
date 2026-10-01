@@ -79,7 +79,7 @@ Handles authentication-related calls:
 
 ```typescript
 export async function loginUser(payload: LoginFormPayload) {
-  // Returns: { auth_token, user }
+  // Returns: { token, user }
 }
 ```
 

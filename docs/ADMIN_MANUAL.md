@@ -43,7 +43,7 @@ A comprehensive guide for administrators to perform operations in the MPA Databa
 
 | Role              | Description                | Permissions                                                                                                                                                                                                                        |
 | ----------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Administrator** | Full system access         | • Manage all users (create, edit, delete)<br>• View all MPA records<br>• Approve/reject pending MPA submissions<br>• Edit any MPA record<br>• Access admin dashboard and settings<br>• Manage user roles and permissions           |
+| **Administrator** | Full system access         | • Manage all users (create, edit)<br>• View all MPA records<br>• Approve/reject pending MPA submissions<br>• Edit any MPA record<br>• Access admin dashboard and settings<br>• Manage user roles and permissions                   |
 | **Contributor**   | Submit and edit own MPAs   | • Submit new MPA records<br>• View all approved MPA records<br>• Edit their own submitted MPAs<br>• Upload shapefiles for MPAs<br>• Track their own submissions<br>• Cannot edit other users' MPAs<br>• Cannot approve submissions |
 | **Viewer**        | Request hidden information | • View all approved MPA records<br>• Request access to hidden/sensitive data<br>• View public map dashboard<br>• Cannot submit new MPAs<br>• Cannot edit any records<br>• Can file information requests with administrators        |
 | **Guest**         | Read-only public access    | • View public MPA data and dashboard<br>• View interactive maps<br>• No login required<br>• Cannot submit or edit records<br>• Limited to publicly released information                                                            |
@@ -85,7 +85,6 @@ export default {
 
 - Navigation: Only Administrators see the "Users" navigation button
 - MPA Editing: Only Administrators can edit any MPA; Contributors can only edit their own
-- MPA Deletion: Only Administrators can delete records
 - Approval Queue: Only Administrators can view/approve/reject pending MPAs
 - MPA Creation: Administrators and Contributors can submit; Viewers cannot
 
@@ -157,13 +156,6 @@ export default {
    - Update geographic assignment
 3. Click **Save**
 4. Changes apply immediately
-
-#### Delete a User
-
-1. Go to **Users** → Click on user
-2. Look for **Delete** option or button
-3. Confirm deletion
-4. User account is permanently removed
 
 #### View User Profile
 
@@ -269,16 +261,7 @@ export default {
 
 Pending MPAs cannot be edited. Must be approved first or rejected and resubmitted.
 
-### 4. Deleting MPA Records (Administrator Only)
-
-1. View MPA details
-2. Click **Delete** button
-3. Confirm deletion
-4. Record is permanently removed
-
-Only Administrators can delete MPA records. Contributors and Viewers cannot delete records.
-
-### 5. MPA Approval Workflow (Administrator Only)
+### 4. MPA Approval Workflow (Administrator Only)
 
 #### View Pending Submissions
 
@@ -325,7 +308,7 @@ Only Administrators can view and manage the pending queue.
 5. Record returns to pending and contributor is notified
 6. Contributor can correct and resubmit
 
-### 6. Managing Associated Documents
+### 5. Managing Associated Documents
 
 #### View Ordinances
 
@@ -352,7 +335,7 @@ Only Administrators can view and manage the pending queue.
 3. Click **Remove** or **Delete** icon
 4. Confirm removal
 
-### 7. Information Requests (Viewer Feature)
+### 6. Information Requests (Viewer Feature)
 
 Viewers can request access to specific information that is hidden from public viewing. This allows controlled access to sensitive data.
 
@@ -887,7 +870,6 @@ npx playwright test --debug
   - [ ] Create new user accounts with appropriate roles
   - [ ] Update user roles and permissions as needed
   - [ ] Reset user passwords
-  - [ ] Remove inactive users
   - [ ] Promote Contributors to Administrators if needed
 
 - [ ] **Data Management**

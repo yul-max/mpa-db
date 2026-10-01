@@ -141,7 +141,7 @@ export async function setupApiMocks(page: Page, options: MockOptions = {}) {
       await json(200, {
         success: true,
         message: 'Signed in successfully',
-        auth_token: 'mock-token-123',
+        token: 'mock-token-123',
         user: users[0]
       });
       return;
@@ -263,7 +263,7 @@ export async function setAuthCookies(page: Page, role: MockRole = 'admin') {
 
   await page.context().addCookies([
     {
-      name: 'auth_token',
+      name: 'token',
       value: 'mock-token-123',
       domain: '127.0.0.1',
       path: '/'
