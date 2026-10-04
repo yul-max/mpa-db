@@ -18,11 +18,12 @@
 </template>
 
 <script setup lang="ts">
- 
+
 import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { fetchMPAMap } from '@/api/mpa';
 
 interface Props {
   open: boolean;
@@ -44,9 +45,7 @@ const emit = defineEmits<{
 
 const mapElement = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
-let wmsLayer: L.TileLayer.WMS | null = null;
-
-const PUBLIC_GEOSERVER_URL = (import.meta.env.PUBLIC_GEOSERVER_URL || import.meta.env.VITE_GEOSERVER_URL) as string | undefined;
+let geoJsonLayer: L.GeoJSON | null = null;
 
 const initializeMap = () => {
   if (!mapElement.value) return;
@@ -57,15 +56,17 @@ const initializeMap = () => {
 
   const lat = typeof props.latitude === 'string' ? parseFloat(props.latitude) : props.latitude;
   const lng = typeof props.longitude === 'string' ? parseFloat(props.longitude) : props.longitude;
+  const hasCoords = lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng);
 
-  if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) {
-    console.warn('Invalid coordinates for map modal');
+  if (!hasCoords && props.mpaId == null) {
+    console.warn('No coordinates or MPA id for map modal');
     return;
   }
 
   map = L.map(mapElement.value, {
-    center: [lat, lng],
-    zoom: 12,
+    // Default to the Philippines; fitBounds will re-center once the polygon loads
+    center: hasCoords ? [lat as number, lng as number] : [12.8797, 121.774],
+    zoom: hasCoords ? 12 : 6,
     zoomControl: true,
     scrollWheelZoom: true
   });
@@ -76,42 +77,52 @@ const initializeMap = () => {
     maxZoom: 18
   }).addTo(map);
 
-  // Add WMS layer for MPA polygons - must be added before marker to show underneath
-  if (PUBLIC_GEOSERVER_URL) {
-    const wmsParams: any = {
-      layers: 'mpad_Geoserver:augCheckedCoord',
-      format: 'image/png',
-      transparent: true,
-      attribution: 'MPA Support Network',
-      version: '1.1.0'
-    };
-
-    // Add CQL filter if mpaId is provided to highlight only this MPA
-    if (props.mpaId) {
-      wmsParams.cql_filter = `id=${props.mpaId}`;
-    }
-
-    wmsLayer = L.tileLayer.wms(`${PUBLIC_GEOSERVER_URL}/mpad_Geoserver/wms`, wmsParams);
-    wmsLayer.addTo(map);
-    wmsLayer.setZIndex(1000); // Ensure it's above the base layer
+  // Add GeoJSON layer for this MPA's polygon - must be added before marker to show underneath
+  if (props.mpaId != null) {
+    loadMpaGeoJson(props.mpaId);
   }
 
-  // Create custom icon for the marker
-  const customIcon = L.divIcon({
-    html: '<div class="mpa-marker-icon"></div>',
-    className: 'custom-mpa-marker',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
-  });
+  // Add marker for the MPA when coordinates are available
+  if (hasCoords) {
+    const customIcon = L.divIcon({
+      html: '<div class="mpa-marker-icon"></div>',
+      className: 'custom-mpa-marker',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
 
-  // Add marker for the MPA
-  L.marker([lat, lng], { icon: customIcon })
-    .addTo(map)
-    .bindPopup(`<strong>${props.mpaName}</strong><br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`)
-    .openPopup();
+    L.marker([lat as number, lng as number], { icon: customIcon })
+      .addTo(map)
+      .bindPopup(`<strong>${props.mpaName}</strong><br>Lat: ${(lat as number).toFixed(6)}<br>Lng: ${(lng as number).toFixed(6)}`)
+      .openPopup();
+  }
 
   // Add scale control
   L.control.scale({ position: 'bottomright' }).addTo(map);
+};
+
+const loadMpaGeoJson = async (mpaId: number | string) => {
+  try {
+    const { data } = await fetchMPAMap(mpaId);
+    if (!map || !data?.features?.length) return;
+
+    geoJsonLayer = L.geoJSON(data, {
+      style: {
+        color: '#22d3ee',
+        weight: 2,
+        fillColor: '#22d3ee',
+        fillOpacity: 0.25
+      },
+      attribution: 'MPA Support Network'
+    }).addTo(map);
+
+    const bounds = geoJsonLayer.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [30, 30] });
+    }
+  } catch (error) {
+    console.error('Failed to load MPA map data:', error);
+  }
 };
 
 const handleEscape = (event: KeyboardEvent) => {
@@ -136,6 +147,7 @@ watch(() => props.open, async (isOpen) => {
     if (map) {
       map.remove();
       map = null;
+      geoJsonLayer = null;
     }
   }
 }, { immediate: false });

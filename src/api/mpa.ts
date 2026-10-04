@@ -2,6 +2,7 @@ import api from './index';
 export const fetchMPAs = (params: any) => api.get('/mpas', { params });
 export const fetchMPADatalist = (query: any) => api.get('/datalist', { params: query });
 export const fetchMPA = (id: string) => api.get(`/datalist/single/${id}`);
+export const fetchMPAMap = (id: string | number) => api.get(`/mpaMap/${id}`);
 export const createMPA = (data: any) => api.post('/mpas', data);
 export const updateMPA = (id: string, data: any) => api.put(`/mpas/${id}`, data);
 export const deleteMPA = (id: string) => api.delete(`/mpas/${id}`);

@@ -29,7 +29,7 @@
 
     <template #subtitle-actions>
       <span
-        v-if="currentData && currentData.latitude && currentData.longitude"
+        v-if="currentData && (currentData.id || (currentData.latitude && currentData.longitude))"
         class="map-link"
         @click="showMapModal = true"
         title="Show location on map"
@@ -585,10 +585,9 @@ const detailsSubtitle = computed(() => {
   if (source.municipality) locationParts.push(source.municipality);
   if (source.province) locationParts.push(source.province);
 
-  let subtitle = '';
-  if (locationParts.length > 0) {
-    subtitle = locationParts.join(', ');
-  }
+  const subtitle = locationParts.length > 0
+    ? locationParts.join(', ')
+    : 'Location not available';
 
   // Touch usersList to make this computed reactive to user store changes
   void usersList.value;
