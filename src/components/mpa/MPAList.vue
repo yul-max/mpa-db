@@ -89,17 +89,6 @@
     </template>
   </ConfirmModal>
 
-  <!-- Success/Error Message Modal -->
-  <ConfirmModal
-    :open="messageModalOpen"
-    :title="messageModalTitle"
-    :message="messageModalContent"
-    :confirm-label="'OK'"
-    :cancel-label="''"
-    @confirm="messageModalOpen = false"
-    @cancel="messageModalOpen = false"
-  />
-
   <!-- View Rejection Reason Modal -->
   <ConfirmModal
     :open="viewRejectionReasonModalOpen"
@@ -125,6 +114,7 @@ import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse
 import { useProvinceOptions } from '@/composables/useDropdownOptions';
 import { useAuthStore } from '@/stores/auth';
 import { useMPAStore } from '@/stores/mpa';
+import { useToast } from '@/composables/useToast';
 
 const router = useRouter();
 const optionsStore = useOptionsStore();
@@ -178,10 +168,7 @@ const approvingStagingId = ref<number | null>(null);
 const approvingMPAName = ref('');
 
 // Success/error message modal state
-const messageModalOpen = ref(false);
-const messageModalTitle = ref('');
-const messageModalContent = ref('');
-const messageModalType = ref<'success' | 'error'>('success');
+const toast = useToast();
 
 // Rejection reason view modal state
 const viewRejectionReasonModalOpen = ref(false);
@@ -500,10 +487,18 @@ const formatNumber = (num: number) => {
   return new Intl.NumberFormat('en-US').format(num);
 };
 
+// Staging/pending records store municipality as an id; resolve it to a name for display.
+// Approved records already store the name, which is returned unchanged.
+const municipalityLabel = (value: unknown): string => {
+  if (value === null || value === undefined || value === '') return '';
+  const match = municipalities.value.find((m) => String(m.id) === String(value));
+  return match ? match.name : String(value);
+};
+
 const formatLocation = (data: Record<string, any>) => {
   const parts: string[] = [];
   if (data.barangay) parts.push(`Brgy. ${data.barangay}`);
-  if (data.municipality) parts.push(data.municipality);
+  if (data.municipality) parts.push(municipalityLabel(data.municipality));
   if (data.province) parts.push(data.province);
   return parts.join(', ') || 'Not specified';
 };
@@ -974,10 +969,7 @@ const confirmApprove = async () => {
   try {
     const response = await approvePendingMPA(approvingStagingId.value);
     if (response.data.success) {
-      messageModalTitle.value = 'MPA Approved';
-      messageModalContent.value = `MPA approved successfully! New MPA ID: ${response.data.new_mpa_id}`;
-      messageModalType.value = 'success';
-      messageModalOpen.value = true;
+      toast.success(`MPA approved successfully! New MPA ID: ${response.data.new_mpa_id}`, { title: 'MPA Approved' });
 
       // Refresh the pending MPAs list
       await fetchData();
@@ -985,10 +977,7 @@ const confirmApprove = async () => {
   } catch (error: any) {
     console.error('Error approving MPA:', error);
     const errorMsg = error.response?.data?.error || 'Failed to approve MPA';
-    messageModalTitle.value = 'Approval Failed';
-    messageModalContent.value = errorMsg;
-    messageModalType.value = 'error';
-    messageModalOpen.value = true;
+    toast.error(errorMsg, { title: 'Approval Failed' });
   } finally {
     isProcessing.value = false;
     approvingStagingId.value = null;
@@ -1023,10 +1012,7 @@ const confirmReject = async () => {
       rejectingMPAName.value = '';
       rejectionReason.value = '';
 
-      messageModalTitle.value = 'MPA Rejected';
-      messageModalContent.value = 'MPA rejected successfully. The uploader will be notified via email.';
-      messageModalType.value = 'success';
-      messageModalOpen.value = true;
+      toast.success('MPA rejected successfully. The uploader will be notified via email.', { title: 'MPA Rejected' });
 
       // Refresh the pending MPAs list
       await fetchData();
@@ -1034,10 +1020,7 @@ const confirmReject = async () => {
   } catch (error: any) {
     console.error('Error rejecting MPA:', error);
     const errorMsg = error.response?.data?.error || 'Failed to reject MPA';
-    messageModalTitle.value = 'Rejection Failed';
-    messageModalContent.value = errorMsg;
-    messageModalType.value = 'error';
-    messageModalOpen.value = true;
+    toast.error(errorMsg, { title: 'Rejection Failed' });
   } finally {
     isProcessing.value = false;
   }

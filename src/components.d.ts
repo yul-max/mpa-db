@@ -52,6 +52,7 @@ declare module 'vue' {
     Switch: typeof import('./components/ui/Switch.vue')['default']
     SwitchField: typeof import('./components/ui/fields/SwitchField.vue')['default']
     Table: typeof import('./components/ui/Table.vue')['default']
+    ToastContainer: typeof import('./components/ui/ToastContainer.vue')['default']
     UserDetails: typeof import('./components/users/UserDetails.vue')['default']
     UserForm: typeof import('./components/users/UserForm.vue')['default']
     UserIcon: typeof import('./components/ui/UserIcon.vue')['default']

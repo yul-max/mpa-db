@@ -169,16 +169,6 @@
     </template>
   </ConfirmModal>
 
-  <ConfirmModal
-    :open="messageModalOpen"
-    :title="messageModalTitle"
-    :message="messageModalContent"
-    :confirm-label="'OK'"
-    :cancel-label="''"
-    @confirm="messageModalOpen = false"
-    @cancel="messageModalOpen = false"
-  />
-
   <MapModal
     :open="showMapModal"
     :title="`${detailsTitle} - Location`"
@@ -250,6 +240,7 @@ import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse
 import { useProvinceOptions, useMunicipalityOptions } from '@/composables/useDropdownOptions';
 import { useUsersStore } from '@/stores/users';
 import { useAuthStore } from '@/stores/auth';
+import { useToast } from '@/composables/useToast';
 
 interface FieldConfig {
   key: string;
@@ -307,6 +298,14 @@ const currentData = computed(() => isPending.value ? pendingMpaData.value : mpaD
 const provinces = computed(() => (optionsStore.options.provinces || []) as ProvinceApiResponse[]);
 const municipalities = computed(() => (optionsStore.options.municipalities || []) as MunicipalityApiResponse[]);
 
+// Staging/pending records store municipality as an id; resolve it to a name for display.
+// Approved records already store the name, which is returned unchanged.
+const municipalityLabel = (value: unknown): string => {
+  if (value === null || value === undefined || value === '') return '';
+  const match = municipalities.value.find((m) => String(m.id) === String(value));
+  return match ? match.name : String(value);
+};
+
 // Transform to dropdown options
 const provinceOptions = useProvinceOptions(provinces);
 
@@ -336,9 +335,7 @@ const approveModalOpen = ref(false);
 const approvingStagingId = ref<number | null>(null);
 const approvingMPAName = ref('');
 
-const messageModalOpen = ref(false);
-const messageModalTitle = ref('');
-const messageModalContent = ref('');
+const toast = useToast();
 
 const previewFileType = computed((): 'pdf' | 'image' | 'unsupported' => {
   const lower = (previewUrl.value ?? '').toLowerCase().replace(/\?.*$/, '');
@@ -489,16 +486,12 @@ const confirmApprove = async () => {
   try {
     const response = await approvePendingMPA(approvingStagingId.value);
     if (response.data.success) {
-      messageModalTitle.value = 'MPA Approved';
-      messageModalContent.value = `MPA approved successfully! New MPA ID: ${response.data.new_mpa_id}`;
-      messageModalOpen.value = true;
+      toast.success(`MPA approved successfully! New MPA ID: ${response.data.new_mpa_id}`, { title: 'MPA Approved' });
       await router.push({ name: 'mpas-list' });
     }
   } catch (error: any) {
     const errorMsg = error.response?.data?.error || 'Failed to approve MPA';
-    messageModalTitle.value = 'Approval Failed';
-    messageModalContent.value = errorMsg;
-    messageModalOpen.value = true;
+    toast.error(errorMsg, { title: 'Approval Failed' });
   } finally {
     approvingStagingId.value = null;
     approvingMPAName.value = '';
@@ -522,16 +515,12 @@ const confirmReject = async () => {
       rejectingMPAName.value = '';
       rejectionReason.value = '';
 
-      messageModalTitle.value = 'MPA Rejected';
-      messageModalContent.value = 'MPA rejected successfully. The uploader will be notified via email.';
-      messageModalOpen.value = true;
+      toast.success('MPA rejected successfully. The uploader will be notified via email.', { title: 'MPA Rejected' });
       await router.push({ name: 'mpas-list' });
     }
   } catch (error: any) {
     const errorMsg = error.response?.data?.error || 'Failed to reject MPA';
-    messageModalTitle.value = 'Rejection Failed';
-    messageModalContent.value = errorMsg;
-    messageModalOpen.value = true;
+    toast.error(errorMsg, { title: 'Rejection Failed' });
   }
 };
 
@@ -582,7 +571,7 @@ const detailsSubtitle = computed(() => {
 
   const locationParts: string[] = [];
   if (source.barangay) locationParts.push(`Brgy. ${source.barangay}`);
-  if (source.municipality) locationParts.push(source.municipality);
+  if (source.municipality) locationParts.push(municipalityLabel(source.municipality));
   if (source.province) locationParts.push(source.province);
 
   const subtitle = locationParts.length > 0
@@ -693,7 +682,7 @@ const mpaDetailsSections: SectionConfig[] = [
     title: 'Location',
     fields: [
       { key: 'province', label: 'Province' },
-      { key: 'municipality', label: 'Municipality' },
+      { key: 'municipality', label: 'Municipality', formatter: municipalityLabel },
       { key: 'barangay', label: 'Barangay' }
     ]
   },
@@ -935,8 +924,10 @@ const saveEdit = async () => {
     mpaData.value = { ...mpaData.value, ...payload };
     originalEditPayload.value = clonePayload(buildEditPayload(mpaData.value));
     isEditing.value = false;
-  } catch (error) {
+    toast.success('MPA updated successfully.');
+  } catch (error: any) {
     console.error('Error updating MPA:', error);
+    toast.error(error.response?.data?.error || 'Failed to update MPA.');
   } finally {
     isSaving.value = false;
   }

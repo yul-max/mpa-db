@@ -4,7 +4,7 @@ export const fetchMPADatalist = (query: any) => api.get('/datalist', { params: q
 export const fetchMPA = (id: string) => api.get(`/datalist/single/${id}`);
 export const fetchMPAMap = (id: string | number) => api.get(`/mpaMap/${id}`);
 export const createMPA = (data: any) => api.post('/mpas', data);
-export const updateMPA = (id: string, data: any) => api.put(`/mpas/${id}`, data);
+export const updateMPA = (id: string, data: any) => api.put(`/upload/mpa/${id}/edit`, data);
 export const deleteMPA = (id: string) => api.delete(`/mpas/${id}`);
 
 /**

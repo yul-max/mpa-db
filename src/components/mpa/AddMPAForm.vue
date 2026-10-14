@@ -153,6 +153,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useUsersStore } from '@/stores/users';
 import { uploadShapefile, fetchBarangays } from '@/api/mpa';
 import { ECOSYSTEM_OPTIONS } from '@/constants/ecosystem';
+import { useToast } from '@/composables/useToast';
 
 const emit = defineEmits<{
   submit: [data: Record<string, unknown>];
@@ -164,6 +165,7 @@ const activeTab = ref(0);
 const optionsStore = useOptionsStore();
 const authStore = useAuthStore();
 const usersStore = useUsersStore();
+const toast = useToast();
 
 const isAdmin = computed(() => authStore.user?.user_type === 1);
 
@@ -657,6 +659,7 @@ const handleSubmit = async () => {
     const response = await uploadShapefile(file, formDataWithoutFile);
 
     if (response.data.success) {
+      toast.success('MPA created successfully and submitted for approval.');
       emit('submit', response.data);
       resetForm();
       ordinanceEntries.value = [{ link: '', name: '' }];
@@ -664,11 +667,11 @@ const handleSubmit = async () => {
       close();
     } else {
       console.error('Upload failed:', response.data.error);
-      // TODO: Show user-facing error message
+      toast.error(response.data.error || 'Failed to create MPA.');
     }
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Upload error:', error);
-    // TODO: Show user-facing error message
+    toast.error(error.response?.data?.error || 'Failed to create MPA. Please try again.');
   } finally {
     isSubmitting.value = false;
   }
