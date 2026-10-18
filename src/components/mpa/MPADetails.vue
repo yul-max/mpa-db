@@ -169,6 +169,47 @@
     </template>
   </ConfirmModal>
 
+  <ConfirmModal
+    :open="addOrdinanceOpen"
+    title="Add Related Document"
+    message="Add a document related to this MPA. The link must be a valid Google Drive link."
+    confirm-label="Submit"
+    cancel-label="Cancel"
+    :disable-confirm="!canSubmitOrdinance"
+    @confirm="confirmAddOrdinance"
+    @cancel="cancelAddOrdinance"
+  >
+    <template #content>
+      <div class="ordinance-form">
+        <div class="ordinance-form-field">
+          <label for="ordinance-name" class="reason-label">Title</label>
+          <input
+            id="ordinance-name"
+            v-model="ordinanceName"
+            type="text"
+            class="ordinance-input"
+            placeholder="Enter document title..."
+            autocomplete="off"
+          />
+        </div>
+        <div class="ordinance-form-field">
+          <label for="ordinance-link" class="reason-label">Link</label>
+          <input
+            id="ordinance-link"
+            v-model="ordinanceLink"
+            type="url"
+            class="ordinance-input"
+            placeholder="https://drive.google.com/..."
+            autocomplete="off"
+          />
+          <p v-if="ordinanceLink.trim() && !isOrdinanceLinkValid" class="ordinance-input-error">
+            Must be a valid Google Drive link.
+          </p>
+        </div>
+      </div>
+    </template>
+  </ConfirmModal>
+
   <MapModal
     :open="showMapModal"
     :title="`${detailsTitle} - Location`"
@@ -235,18 +276,19 @@ import MapModal from '@/components/ui/MapModal.vue';
 import Dropdown from '@/components/ui/Dropdown.vue';
 import type { DropdownItem } from '@/types/dropdown';
 import { useMPAStore, editFields } from '@/stores/mpa';
-import { updateMPA, fetchOrdinances, approvePendingMPA, rejectPendingMPA, fetchBarangays } from '@/api/mpa';
+import { updateMPA, fetchOrdinances, addOrdinance, approvePendingMPA, rejectPendingMPA, fetchBarangays } from '@/api/mpa';
 import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse, type BarangayApiResponse, type DropdownOption } from '@/stores/options';
 import { useProvinceOptions, useMunicipalityOptions } from '@/composables/useDropdownOptions';
 import { useUsersStore } from '@/stores/users';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast';
+import { ECOSYSTEM_OPTIONS } from '@/constants/ecosystem';
 
 interface FieldConfig {
   key: string;
   label: string;
   fullWidth?: boolean;
-  type?: 'text' | 'number' | 'boolean' | 'date';
+  type?: 'text' | 'number' | 'year' | 'boolean' | 'date' | 'tags';
   formatter?: (value: any) => string;
 }
 
@@ -335,6 +377,11 @@ const approveModalOpen = ref(false);
 const approvingStagingId = ref<number | null>(null);
 const approvingMPAName = ref('');
 
+const addOrdinanceOpen = ref(false);
+const ordinanceName = ref('');
+const ordinanceLink = ref('');
+const isSubmittingOrdinance = ref(false);
+
 const toast = useToast();
 
 const previewFileType = computed((): 'pdf' | 'image' | 'unsupported' => {
@@ -349,29 +396,24 @@ const ordinanceTypeLabel = (type: number): string => {
   return labels[type] ?? 'Unknown';
 };
 
-const mpaTypeLabel = (type: number | string | null | undefined): string => {
-  if (type === null || type === undefined) return 'N/A';
+const mpaTypeLabel = (type: number | string | Array<number | string> | null | undefined): string => {
+  if (type === null || type === undefined || type === '') return 'N/A';
 
-  // If it's already a string that's not a number, return it as-is (older records)
-  if (typeof type === 'string' && isNaN(parseInt(type, 10))) {
-    return type;
-  }
-
-  // Convert to number and map to label
-  const typeNum = typeof type === 'string' ? parseInt(type, 10) : type;
-  const labels: Record<number, string> = {
-    1: 'Corals',
-    2: 'Mangrove',
-    3: 'Seagrass',
-    4: 'Sandy Bottom',
-    5: 'Deep Water',
-    6: 'Island',
-    7: 'Islet',
-    8: 'Wetland',
-    9: 'Beach Forest',
-    10: 'Seaweeds'
+  const toLabel = (part: number | string): string => {
+    const num = typeof part === 'string' ? parseInt(part.trim(), 10) : part;
+    if (isNaN(num)) {
+      // Not a number — return as-is (older records store the label directly)
+      return String(part).trim();
+    }
+    return ECOSYSTEM_OPTIONS.find((o) => o.value === num)?.label ?? 'Unknown';
   };
-  return labels[typeNum] ?? 'Unknown';
+
+  // Support multiple types stored as comma-separated values (e.g., "1,3,5")
+  const parts = Array.isArray(type) ? type : String(type).split(',');
+  return parts
+    .map(toLabel)
+    .filter((label) => label !== '')
+    .join(', ');
 };
 
 const openFilePreview = (row: Ordinance) => {
@@ -421,8 +463,66 @@ const openMEATForm = () => {
 };
 
 const openAddOrdinanceModal = () => {
-  // TODO: Implement add ordinance modal
-  console.log('Add ordinance modal');
+  ordinanceName.value = '';
+  ordinanceLink.value = '';
+  addOrdinanceOpen.value = true;
+};
+
+const isGoogleDriveLink = (url: string): boolean => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return false;
+    return parsed.hostname === 'drive.google.com' || parsed.hostname === 'docs.google.com';
+  } catch {
+    return false;
+  }
+};
+
+const isOrdinanceLinkValid = computed(() => isGoogleDriveLink(ordinanceLink.value.trim()));
+
+const canSubmitOrdinance = computed(() =>
+  !isSubmittingOrdinance.value && ordinanceName.value.trim() !== '' && isOrdinanceLinkValid.value
+);
+
+const confirmAddOrdinance = async () => {
+  if (!canSubmitOrdinance.value) return;
+  const record = currentData.value;
+  const mpaId = (isPending.value ? record?.staging_id : record?.id) ?? route.params.id;
+
+  isSubmittingOrdinance.value = true;
+  try {
+    await addOrdinance(String(mpaId), {
+      ordinance_name: ordinanceName.value.trim(),
+      ordinance_link: ordinanceLink.value.trim()
+    });
+    addOrdinanceOpen.value = false;
+    ordinanceName.value = '';
+    ordinanceLink.value = '';
+    toast.success('Related document added successfully.');
+    // Refresh the history list
+    if (!isPending.value) {
+      try {
+        ordinancesLoading.value = true;
+        const res = await fetchOrdinances(String(mpaId));
+        ordinances.value = res.data ?? [];
+      } catch {
+        // keep existing list on refresh failure
+      } finally {
+        ordinancesLoading.value = false;
+      }
+    }
+  } catch (error: any) {
+    console.error('Error adding related document:', error);
+    toast.error(error.response?.data?.error || 'Failed to add related document.');
+  } finally {
+    isSubmittingOrdinance.value = false;
+  }
+};
+
+const cancelAddOrdinance = () => {
+  addOrdinanceOpen.value = false;
+  ordinanceName.value = '';
+  ordinanceLink.value = '';
 };
 
 const onKeyDown = (e: KeyboardEvent) => {
@@ -672,9 +772,9 @@ const mpaDetailsSections: SectionConfig[] = [
     title: 'Basic Information',
     fields: [
       { key: 'complete_name', label: 'Name' },
-      { key: 'year_established', label: 'Year Established', type: 'number' },
+      { key: 'year_established', label: 'Year Established', type: 'year' },
       { key: 'date_established', label: 'Date Established', type: 'date' },
-      { key: 'type', label: 'Type', formatter: mpaTypeLabel },
+      { key: 'type', label: 'Type', type: 'tags', formatter: mpaTypeLabel },
       { key: 'status', label: 'Status' }
     ]
   },
@@ -917,12 +1017,19 @@ const confirmDiscard = () => {
 
 const saveEdit = async () => {
   try {
-    if (!mpaData.value || isSaving.value) return;
+    const record = currentData.value;
+    if (!record || isSaving.value) return;
     isSaving.value = true;
     const payload = buildSubmitPayload(editPayload.value);
-    await updateMPA(String(mpaData.value.id), payload);
-    mpaData.value = { ...mpaData.value, ...payload };
-    originalEditPayload.value = clonePayload(buildEditPayload(mpaData.value));
+    const targetId = isPending.value ? record.staging_id : record.id;
+    await updateMPA(String(targetId ?? route.params.id), payload);
+    if (isPending.value) {
+      pendingMpaData.value = { ...record, ...payload };
+      originalEditPayload.value = clonePayload(buildEditPayload(pendingMpaData.value));
+    } else {
+      mpaData.value = { ...record, ...payload };
+      originalEditPayload.value = clonePayload(buildEditPayload(mpaData.value));
+    }
     isEditing.value = false;
     toast.success('MPA updated successfully.');
   } catch (error: any) {
@@ -998,6 +1105,35 @@ onBeforeRouteLeave((to) => {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* ── Add related document modal ────────────────────────── */
+.ordinance-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.ordinance-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.ordinance-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.ordinance-input-error {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  color: #dc2626;
 }
 
 /* ── Ordinance history ─────────────────────────────────── */

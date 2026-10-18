@@ -99,14 +99,20 @@
                       <template v-else>
                         <slot :name="`edit-field-${field.key}`" :value="getFieldValue(field.key)">
                           <slot :name="`field-${field.key}`" :value="getFieldValue(field.key)">
-                            {{ formatValue(getFieldValue(field.key), field) }}
+                            <span v-if="field.type === 'tags' && tagValues(getFieldValue(field.key), field).length" class="tag-list">
+                              <span v-for="tag in tagValues(getFieldValue(field.key), field)" :key="tag" class="tag-chip">{{ tag }}</span>
+                            </span>
+                            <template v-else>{{ formatValue(getFieldValue(field.key), field) }}</template>
                           </slot>
                         </slot>
                       </template>
                     </template>
                     <template v-else>
                       <slot :name="`field-${field.key}`" :value="getFieldValue(field.key)">
-                        {{ formatValue(getFieldValue(field.key), field) }}
+                        <span v-if="field.type === 'tags' && tagValues(getFieldValue(field.key), field).length" class="tag-list">
+                          <span v-for="tag in tagValues(getFieldValue(field.key), field)" :key="tag" class="tag-chip">{{ tag }}</span>
+                        </span>
+                        <template v-else>{{ formatValue(getFieldValue(field.key), field) }}</template>
                       </slot>
                     </template>
                   </span>
@@ -146,14 +152,20 @@
                 <template v-else>
                   <slot :name="`edit-field-${field.key}`" :value="getFieldValue(field.key)">
                     <slot :name="`field-${field.key}`" :value="getFieldValue(field.key)">
-                      {{ formatValue(getFieldValue(field.key), field) }}
+                      <span v-if="field.type === 'tags' && tagValues(getFieldValue(field.key), field).length" class="tag-list">
+                        <span v-for="tag in tagValues(getFieldValue(field.key), field)" :key="tag" class="tag-chip">{{ tag }}</span>
+                      </span>
+                      <template v-else>{{ formatValue(getFieldValue(field.key), field) }}</template>
                     </slot>
                   </slot>
                 </template>
               </template>
               <template v-else>
                 <slot :name="`field-${field.key}`" :value="getFieldValue(field.key)">
-                  {{ formatValue(getFieldValue(field.key), field) }}
+                  <span v-if="field.type === 'tags' && tagValues(getFieldValue(field.key), field).length" class="tag-list">
+                    <span v-for="tag in tagValues(getFieldValue(field.key), field)" :key="tag" class="tag-chip">{{ tag }}</span>
+                  </span>
+                  <template v-else>{{ formatValue(getFieldValue(field.key), field) }}</template>
                 </slot>
               </template>
             </span>
@@ -181,7 +193,7 @@ interface FieldConfig {
   key: string;
   label: string;
   fullWidth?: boolean;
-  type?: 'text' | 'number' | 'boolean' | 'date';
+  type?: 'text' | 'number' | 'year' | 'boolean' | 'date' | 'tags';
   formatter?: (value: any) => string;
 }
 
@@ -329,11 +341,22 @@ const formatValue = (value: any, field: FieldConfig): string => {
       return value ? 'Yes' : 'No';
     case 'number':
       return new Intl.NumberFormat('en-US').format(value);
+    case 'year':
+      return String(value);
     case 'date':
       return new Date(value).toLocaleDateString('en-US');
     default:
       return String(value);
   }
+};
+
+const tagValues = (value: any, field: FieldConfig): string[] => {
+  if (value === null || value === undefined || value === '') return [];
+  const formatted = field.formatter ? field.formatter(value) : String(value);
+  return formatted
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part !== '' && part !== 'N/A');
 };
 </script>
 
@@ -601,6 +624,24 @@ const formatValue = (value: any, field: FieldConfig): string => {
   font-size: 1rem;
   color: #1f2937;
   word-break: break-word;
+}
+
+.tag-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
 }
 
 .loading-state {

@@ -85,3 +85,10 @@ export const rejectPendingMPA = (stagingId: string | number, reason: string) =>
 export const fetchMyMPAs = (params?: any) => api.get('/upload/my-mpas', { params });
 
 export const fetchOrdinances = (mpaId: string | number) => api.get(`/ordinance/${mpaId}`);
+
+/**
+ * Add a related document (ordinance) to an MPA.
+ * NOTE: Backend endpoint not implemented yet.
+ */
+export const addOrdinance = (mpaId: string | number, data: { ordinance_name: string; ordinance_link: string }) =>
+  api.post(`/ordinance/${mpaId}`, data);

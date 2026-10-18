@@ -10,7 +10,6 @@ export const editFields: EditFieldDef[] = [
   { key: 'year_established', component: 'InputTextField', props: { type: 'number', placeholder: 'e.g., 2006' } },
   { key: 'date_established', component: 'InputTextField', props: { type: 'date', placeholder: 'YYYY-MM-DD' } },
   { key: 'type', component: 'InputTextField', props: { type: 'number', placeholder: 'Enter type' } },
-  { key: 'status', component: 'InputTextField', props: { placeholder: 'Enter status' } },
   { key: 'province', component: 'SearchSelectField', props: { options: [], placeholder: 'Select province' } },
   {
     key: 'municipality',

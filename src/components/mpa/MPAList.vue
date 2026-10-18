@@ -115,6 +115,7 @@ import { useProvinceOptions } from '@/composables/useDropdownOptions';
 import { useAuthStore } from '@/stores/auth';
 import { useMPAStore } from '@/stores/mpa';
 import { useToast } from '@/composables/useToast';
+import { ECOSYSTEM_OPTIONS } from '@/constants/ecosystem';
 
 const router = useRouter();
 const optionsStore = useOptionsStore();
@@ -175,18 +176,18 @@ const viewRejectionReasonModalOpen = ref(false);
 const viewingRejectionReason = ref('');
 const viewingMPAName = ref('');
 
-// Ecosystem type mapping (1-10)
-const ecosystemTypes: Record<number, string> = {
-  1: 'Corals',
-  2: 'Mangrove',
-  3: 'Seagrass',
-  4: 'Wetlands',
-  5: 'Sandy Beach',
-  6: 'Mudflat',
-  7: 'Rocky Shore',
-  8: 'Freshwater',
-  9: 'Fish Sanctuary',
-  10: 'Seaweeds'
+// Ecosystem type label — supports multiple types stored as comma-separated values (e.g., "1,3,5")
+const ecosystemTypeLabel = (type: unknown): string => {
+  if (type === null || type === undefined || type === '') return 'Unknown';
+  return String(type)
+    .split(',')
+    .map((part) => {
+      const num = parseInt(part.trim(), 10);
+      if (isNaN(num)) return part.trim();
+      return ECOSYSTEM_OPTIONS.find((o) => o.value === num)?.label ?? 'Unknown';
+    })
+    .filter((label) => label !== '')
+    .join(', ');
 };
 
 const dataTableSortOrder = computed(() => (sortOrder.value === 'asc' ? 1 : -1));
@@ -327,8 +328,16 @@ const pendingTableColumns = ref<ColumnDef[]>([
     type: 'string',
     sort_column: 'type',
     sortable: true,
-    exportValue: (row) => ecosystemTypes[row.type as number] || 'Unknown',
-    render: (row) => ecosystemTypes[row.type as number] || 'Unknown'
+    exportValue: (row) => ecosystemTypeLabel(row.type),
+    render: (row) => {
+      const labels = ecosystemTypeLabel(row.type);
+      if (labels === 'Unknown') return labels;
+      return h(
+        'span',
+        { class: 'ecosystem-tag-list' },
+        labels.split(', ').map((label) => h('span', { class: 'ecosystem-tag', key: label }, label))
+      );
+    }
   },
   {
     field: 'year_established',
@@ -1065,6 +1074,24 @@ onMounted(async () => {
 </script>
 
 <style>
+.ecosystem-tag-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.ecosystem-tag {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
 .header-container {
   display: flex;
   justify-content: space-between;

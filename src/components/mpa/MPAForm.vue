@@ -22,7 +22,7 @@ import Form from '@/components/ui/Form.vue';
 
 const route = useRoute();
 const router = useRouter();
-const isEdit = route.name === 'mpa-edit';
+const isEdit = route.name === 'mpas-edit';
 
 const mpaSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),

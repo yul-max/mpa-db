@@ -60,8 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
   /** Clear local auth session state. */
   async function logout() {
     // await authApi.logout()
-    // accessToken.value = null
-    // user.value = null
+    accessToken.value = null
     cookies.remove('token', { path: '/' })
     clearUser()
   }
