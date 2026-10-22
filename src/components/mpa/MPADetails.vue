@@ -558,8 +558,10 @@ const isOrdinanceEntryValid = (entry: OrdinanceEntry) =>
   entry.link.trim() !== '' &&
   (isOrdinanceLinkUnchanged(entry) || isGoogleDriveLink(entry.link.trim()));
 
+// Only newly added rows must have a link before another row can be added;
+// existing records may legitimately have no attachment
 const hasBlankOrdinanceLink = computed(() =>
-  ordinanceForm.value.some((entry) => entry.link.trim() === '')
+  ordinanceForm.value.some((entry) => entry.id === null && entry.link.trim() === '')
 );
 
 const ordinanceLinkError = (entry: OrdinanceEntry) =>
