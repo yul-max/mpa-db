@@ -87,8 +87,11 @@ export const fetchMyMPAs = (params?: any) => api.get('/upload/my-mpas', { params
 export const fetchOrdinances = (mpaId: string | number) => api.get(`/ordinance/${mpaId}`);
 
 /**
- * Add a related document (ordinance) to an MPA.
+ * Submit related documents (ordinances) for an MPA.
+ * Request body: { ordinances: [{ ordinance_name, ordinance_link }, ...] }
  * NOTE: Backend endpoint not implemented yet.
  */
-export const addOrdinance = (mpaId: string | number, data: { ordinance_name: string; ordinance_link: string }) =>
-  api.post(`/ordinance/${mpaId}`, data);
+export const submitOrdinances = (
+  mpaId: string | number,
+  ordinances: Array<{ ordinance_name: string; ordinance_link: string }>
+) => api.put(`/upload/mpa/${mpaId}/ordinances`, { ordinances });

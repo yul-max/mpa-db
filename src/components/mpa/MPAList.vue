@@ -72,6 +72,8 @@
     confirm-label="Reject MPA"
     cancel-label="Cancel"
     :disable-confirm="!rejectionReason.trim()"
+    :loading="isProcessing"
+    loading-label="Rejecting..."
     @confirm="confirmReject"
     @cancel="cancelReject"
   >
@@ -1036,6 +1038,7 @@ const confirmReject = async () => {
 };
 
 const cancelReject = () => {
+  if (isProcessing.value) return;
   rejectModalOpen.value = false;
   rejectingStagingId.value = null;
   rejectingMPAName.value = '';

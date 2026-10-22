@@ -44,40 +44,105 @@
           <button
             type="button"
             class="add-ordinance-button"
-            @click="openAddOrdinanceModal"
+            :disabled="hasBlankOrdinanceLink"
+            :title="hasBlankOrdinanceLink ? 'Fill in the empty link field first' : undefined"
+            @click="addOrdinanceRow"
           >
             <FontAwesomeIcon :icon="['fas', 'plus']" />
             Add related document
           </button>
         </div>
         <div v-if="ordinancesLoading" class="ordinance-loading">Loading history...</div>
-        <DataTable
-          v-else
-          :value="ordinances"
-          sort-field="year"
-          :sort-order="-1"
-          class="ordinance-table"
-          striped-rows
+        <template v-else>
+          <DataTable
+            :value="isAdmin ? ordinanceForm : ordinances"
+            class="ordinance-table"
+            striped-rows
+          >
+            <Column header="Year" style="width: 90px">
+              <template #body="{ data: row }">
+                <span v-if="row.year == null" class="ordinance-placeholder">&mdash;</span>
+                <template v-else>{{ row.year }}</template>
+              </template>
+            </Column>
+            <Column header="Type" style="width: 130px">
+              <template #body="{ data: row }">
+                <span v-if="row.type == null" class="ordinance-placeholder">&mdash;</span>
+                <template v-else>{{ ordinanceTypeLabel(row.type) }}</template>
+              </template>
+            </Column>
+            <Column header="Title">
+              <template #body="{ data: row, index }">
+                <input
+                  v-if="isAdmin"
+                  v-model="ordinanceForm[index]!.name"
+                  type="text"
+                  class="ordinance-input"
+                  placeholder="Document title..."
+                  autocomplete="off"
+                  :aria-label="`Title for document ${index + 1}`"
+                />
+                <a
+                  v-else-if="row.attach"
+                  class="ordinance-link"
+                  @click.prevent="openFilePreview(row)"
+                >{{ ordinanceDisplayName(row) }}</a>
+                <span v-else>{{ ordinanceDisplayName(row) }}</span>
+              </template>
+            </Column>
+            <Column v-if="isAdmin" header="Link">
+              <template #body="{ index }">
+                <input
+                  v-model="ordinanceForm[index]!.link"
+                  type="url"
+                  class="ordinance-input"
+                  placeholder="https://drive.google.com/..."
+                  autocomplete="off"
+                  :aria-label="`Link for document ${index + 1}`"
+                />
+                <p v-if="ordinanceLinkError(ordinanceForm[index]!)" class="ordinance-input-error">
+                  Must be a valid Google Drive link.
+                </p>
+              </template>
+            </Column>
+            <Column v-if="isAdmin" header="" style="width: 56px">
+              <template #body="{ index }">
+                <button
+                  type="button"
+                  class="ordinance-remove-button"
+                  aria-label="Remove document"
+                  @click="removeOrdinanceRow(index)"
+                >
+                  <FontAwesomeIcon :icon="['fas', 'times']" />
+                </button>
+              </template>
+            </Column>
+            <!-- Download column hidden until further notice -->
+          </DataTable>
+          <div v-if="isAdmin && isOrdinanceFormDirty" class="ordinance-form-actions">
+            <button
+              type="button"
+              class="ordinance-cancel-button"
+              :disabled="isSubmittingOrdinances"
+              @click="resetOrdinanceForm"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="add-ordinance-button"
+              :disabled="!canSubmitOrdinances"
+              @click="submitOrdinanceForm"
+            >
+              <FontAwesomeIcon :icon="['fas', 'check']" />
+              {{ isSubmittingOrdinances ? 'Saving...' : 'Save changes' }}
+            </button>
+          </div>
+        </template>
+        <div
+          v-if="!ordinancesLoading && (isAdmin ? ordinanceForm.length === 0 : ordinances.length === 0)"
+          class="ordinance-empty"
         >
-          <Column field="year" header="Year" sortable style="width: 90px" />
-          <Column field="type" header="Type" sortable style="width: 130px">
-            <template #body="{ data: row }">
-              {{ ordinanceTypeLabel(row.type) }}
-            </template>
-          </Column>
-          <Column field="val" header="Title">
-            <template #body="{ data: row }">
-              <a
-                v-if="row.attach"
-                class="ordinance-link"
-                @click.prevent="openFilePreview(row)"
-              >{{ row.val }}</a>
-              <span v-else>{{ row.val }}</span>
-            </template>
-          </Column>
-          <!-- Download column hidden until further notice -->
-        </DataTable>
-        <div v-if="!ordinancesLoading && ordinances.length === 0" class="ordinance-empty">
           No history records found.
         </div>
       </div>
@@ -136,6 +201,18 @@
   />
 
   <ConfirmModal
+    :open="clearOrdinancesModalOpen"
+    title="Remove all related documents?"
+    message="You are about to save an empty list, which will remove every related document for this MPA. This cannot be undone."
+    confirm-label="Remove all"
+    cancel-label="Cancel"
+    :loading="isSubmittingOrdinances"
+    loading-label="Saving..."
+    @confirm="performOrdinanceSubmit"
+    @cancel="cancelClearOrdinances"
+  />
+
+  <ConfirmModal
     :open="approveModalOpen"
     :title="`Approve MPA: ${approvingMPAName}`"
     message="Are you sure you want to approve this MPA? This will publish it to the main database."
@@ -152,6 +229,8 @@
     confirm-label="Reject MPA"
     cancel-label="Cancel"
     :disable-confirm="!rejectionReason.trim()"
+    :loading="isRejecting"
+    loading-label="Rejecting..."
     @confirm="confirmReject"
     @cancel="cancelReject"
   >
@@ -165,47 +244,6 @@
           placeholder="Enter the reason for rejection..."
           rows="4"
         />
-      </div>
-    </template>
-  </ConfirmModal>
-
-  <ConfirmModal
-    :open="addOrdinanceOpen"
-    title="Add Related Document"
-    message="Add a document related to this MPA. The link must be a valid Google Drive link."
-    confirm-label="Submit"
-    cancel-label="Cancel"
-    :disable-confirm="!canSubmitOrdinance"
-    @confirm="confirmAddOrdinance"
-    @cancel="cancelAddOrdinance"
-  >
-    <template #content>
-      <div class="ordinance-form">
-        <div class="ordinance-form-field">
-          <label for="ordinance-name" class="reason-label">Title</label>
-          <input
-            id="ordinance-name"
-            v-model="ordinanceName"
-            type="text"
-            class="ordinance-input"
-            placeholder="Enter document title..."
-            autocomplete="off"
-          />
-        </div>
-        <div class="ordinance-form-field">
-          <label for="ordinance-link" class="reason-label">Link</label>
-          <input
-            id="ordinance-link"
-            v-model="ordinanceLink"
-            type="url"
-            class="ordinance-input"
-            placeholder="https://drive.google.com/..."
-            autocomplete="off"
-          />
-          <p v-if="ordinanceLink.trim() && !isOrdinanceLinkValid" class="ordinance-input-error">
-            Must be a valid Google Drive link.
-          </p>
-        </div>
       </div>
     </template>
   </ConfirmModal>
@@ -276,7 +314,7 @@ import MapModal from '@/components/ui/MapModal.vue';
 import Dropdown from '@/components/ui/Dropdown.vue';
 import type { DropdownItem } from '@/types/dropdown';
 import { useMPAStore, editFields } from '@/stores/mpa';
-import { updateMPA, fetchOrdinances, addOrdinance, approvePendingMPA, rejectPendingMPA, fetchBarangays } from '@/api/mpa';
+import { updateMPA, fetchOrdinances, submitOrdinances, approvePendingMPA, rejectPendingMPA, fetchBarangays } from '@/api/mpa';
 import { useOptionsStore, type ProvinceApiResponse, type MunicipalityApiResponse, type BarangayApiResponse, type DropdownOption } from '@/stores/options';
 import { useProvinceOptions, useMunicipalityOptions } from '@/composables/useDropdownOptions';
 import { useUsersStore } from '@/stores/users';
@@ -372,15 +410,22 @@ const rejectModalOpen = ref(false);
 const rejectingStagingId = ref<number | null>(null);
 const rejectingMPAName = ref('');
 const rejectionReason = ref('');
+const isRejecting = ref(false);
 
 const approveModalOpen = ref(false);
 const approvingStagingId = ref<number | null>(null);
 const approvingMPAName = ref('');
 
-const addOrdinanceOpen = ref(false);
-const ordinanceName = ref('');
-const ordinanceLink = ref('');
-const isSubmittingOrdinance = ref(false);
+interface OrdinanceEntry {
+  id: number | null;
+  year: number | null;
+  type: number | null;
+  name: string;
+  link: string;
+}
+const ordinanceForm = ref<OrdinanceEntry[]>([]);
+const originalOrdinanceForm = ref<OrdinanceEntry[]>([]);
+const isSubmittingOrdinances = ref(false);
 
 const toast = useToast();
 
@@ -395,6 +440,10 @@ const ordinanceTypeLabel = (type: number): string => {
   const labels: Record<number, string> = { 1: 'Legislation', 2: 'Remarks', 3: 'Award' };
   return labels[type] ?? 'Unknown';
 };
+
+// Fall back to the link when a record has no title
+const ordinanceDisplayName = (row: { val?: string | null; attach?: string | null }): string =>
+  (row.val ?? '').trim() || (row.attach ?? '').trim();
 
 const mpaTypeLabel = (type: number | string | Array<number | string> | null | undefined): string => {
   if (type === null || type === undefined || type === '') return 'N/A';
@@ -462,10 +511,31 @@ const openMEATForm = () => {
   window.open('https://docs.google.com/forms/d/e/1FAIpQLScoV5fvHaPjUtazeakqvx771Amk5FyKI1CcdqZXrT6AnD7zAw/viewform', '_blank', 'noopener,noreferrer');
 };
 
-const openAddOrdinanceModal = () => {
-  ordinanceName.value = '';
-  ordinanceLink.value = '';
-  addOrdinanceOpen.value = true;
+// The history table doubles as the edit form: existing records are editable and
+// removable, and new rows can be appended. Submitting sends the full list.
+const toOrdinanceEntry = (o: Ordinance): OrdinanceEntry => ({
+  id: o.id,
+  year: o.year ?? null,
+  type: o.type ?? null,
+  name: o.val ?? '',
+  link: o.attach ?? ''
+});
+
+const syncOrdinanceForm = () => {
+  ordinanceForm.value = ordinances.value.map(toOrdinanceEntry);
+  originalOrdinanceForm.value = ordinances.value.map(toOrdinanceEntry);
+};
+
+const addOrdinanceRow = () => {
+  ordinanceForm.value.push({ id: null, year: null, type: null, name: '', link: '' });
+};
+
+const removeOrdinanceRow = (index: number) => {
+  ordinanceForm.value.splice(index, 1);
+};
+
+const resetOrdinanceForm = () => {
+  ordinanceForm.value = originalOrdinanceForm.value.map((entry) => ({ ...entry }));
 };
 
 const isGoogleDriveLink = (url: string): boolean => {
@@ -478,51 +548,75 @@ const isGoogleDriveLink = (url: string): boolean => {
   }
 };
 
-const isOrdinanceLinkValid = computed(() => isGoogleDriveLink(ordinanceLink.value.trim()));
+// Existing records may hold legacy (non-Drive) links; only enforce the Drive
+// requirement on links the user actually entered or changed.
+const isOrdinanceLinkUnchanged = (entry: OrdinanceEntry) =>
+  entry.id !== null &&
+  originalOrdinanceForm.value.some((original) => original.id === entry.id && original.link === entry.link);
 
-const canSubmitOrdinance = computed(() =>
-  !isSubmittingOrdinance.value && ordinanceName.value.trim() !== '' && isOrdinanceLinkValid.value
+const isOrdinanceEntryValid = (entry: OrdinanceEntry) =>
+  entry.link.trim() !== '' &&
+  (isOrdinanceLinkUnchanged(entry) || isGoogleDriveLink(entry.link.trim()));
+
+const hasBlankOrdinanceLink = computed(() =>
+  ordinanceForm.value.some((entry) => entry.link.trim() === '')
 );
 
-const confirmAddOrdinance = async () => {
-  if (!canSubmitOrdinance.value) return;
+const ordinanceLinkError = (entry: OrdinanceEntry) =>
+  entry.link.trim() !== '' && !isOrdinanceLinkUnchanged(entry) && !isGoogleDriveLink(entry.link.trim());
+
+const isOrdinanceFormDirty = computed(() =>
+  JSON.stringify(ordinanceForm.value) !== JSON.stringify(originalOrdinanceForm.value)
+);
+
+const canSubmitOrdinances = computed(() =>
+  !isSubmittingOrdinances.value &&
+  isOrdinanceFormDirty.value &&
+  ordinanceForm.value.every(isOrdinanceEntryValid)
+);
+
+const clearOrdinancesModalOpen = ref(false);
+
+const performOrdinanceSubmit = async () => {
   const record = currentData.value;
   const mpaId = (isPending.value ? record?.staging_id : record?.id) ?? route.params.id;
 
-  isSubmittingOrdinance.value = true;
+  const payload = ordinanceForm.value.map((entry) => ({
+    ordinance_name: entry.name.trim(),
+    ordinance_link: entry.link.trim()
+  }));
+
+  isSubmittingOrdinances.value = true;
   try {
-    await addOrdinance(String(mpaId), {
-      ordinance_name: ordinanceName.value.trim(),
-      ordinance_link: ordinanceLink.value.trim()
-    });
-    addOrdinanceOpen.value = false;
-    ordinanceName.value = '';
-    ordinanceLink.value = '';
-    toast.success('Related document added successfully.');
-    // Refresh the history list
-    if (!isPending.value) {
-      try {
-        ordinancesLoading.value = true;
-        const res = await fetchOrdinances(String(mpaId));
-        ordinances.value = res.data ?? [];
-      } catch {
-        // keep existing list on refresh failure
-      } finally {
-        ordinancesLoading.value = false;
-      }
-    }
+    await submitOrdinances(String(mpaId), payload);
+    toast.success('Related documents saved successfully.');
+    // Reload the full MPA record (details + history) so the view reflects the saved state
+    await loadData();
+    clearOrdinancesModalOpen.value = false;
   } catch (error: any) {
-    console.error('Error adding related document:', error);
-    toast.error(error.response?.data?.error || 'Failed to add related document.');
+    console.error('Error saving related documents:', error);
+    toast.error(error.response?.data?.error || 'Failed to save related documents.');
   } finally {
-    isSubmittingOrdinance.value = false;
+    isSubmittingOrdinances.value = false;
   }
 };
 
-const cancelAddOrdinance = () => {
-  addOrdinanceOpen.value = false;
-  ordinanceName.value = '';
-  ordinanceLink.value = '';
+const submitOrdinanceForm = async () => {
+  if (!canSubmitOrdinances.value) return;
+
+  // Submitting an empty list wipes every existing related document — confirm first
+  if (ordinanceForm.value.length === 0) {
+    clearOrdinancesModalOpen.value = true;
+    return;
+  }
+
+  await performOrdinanceSubmit();
+};
+
+const cancelClearOrdinances = () => {
+  if (isSubmittingOrdinances.value) return;
+  clearOrdinancesModalOpen.value = false;
+  resetOrdinanceForm();
 };
 
 const onKeyDown = (e: KeyboardEvent) => {
@@ -552,6 +646,23 @@ const isRejected = computed(() => {
   const data = currentData.value as Record<string, unknown> | null;
   const status = String(data?.upload_status ?? data?.status ?? '').toLowerCase();
   return status === 'rejected';
+});
+
+// Staging records can be pending, rejected, or approved — reflect the real status
+const pendingStatusLabel = computed(() => {
+  const data = currentData.value as Record<string, unknown> | null;
+  const status = String(data?.upload_status ?? data?.status ?? '').toLowerCase();
+  switch (status) {
+    case 'rejected':
+      return 'Rejected';
+    case 'approved':
+      return 'Approved';
+    case '':
+    case 'pending':
+      return 'Pending Approval';
+    default:
+      return status.charAt(0).toUpperCase() + status.slice(1);
+  }
 });
 
 const pendingActionItems = computed<DropdownItem[]>(() => {
@@ -605,8 +716,9 @@ const cancelApprove = () => {
 };
 
 const confirmReject = async () => {
-  if (!rejectionReason.value.trim() || !rejectingStagingId.value) return;
+  if (!rejectionReason.value.trim() || !rejectingStagingId.value || isRejecting.value) return;
 
+  isRejecting.value = true;
   try {
     const response = await rejectPendingMPA(rejectingStagingId.value, rejectionReason.value.trim());
     if (response.data.success) {
@@ -621,10 +733,13 @@ const confirmReject = async () => {
   } catch (error: any) {
     const errorMsg = error.response?.data?.error || 'Failed to reject MPA';
     toast.error(errorMsg, { title: 'Rejection Failed' });
+  } finally {
+    isRejecting.value = false;
   }
 };
 
 const cancelReject = () => {
+  if (isRejecting.value) return;
   rejectModalOpen.value = false;
   rejectingStagingId.value = null;
   rejectingMPAName.value = '';
@@ -683,7 +798,7 @@ const detailsSubtitle = computed(() => {
 
   if (isPending.value) {
     const uploadedByName = usersStore.getUserFullName(record.uploaded_by as string | number | null | undefined);
-    return `${subtitle}\nStatus: Pending Approval\nUploaded by: ${uploadedByName}`;
+    return `${subtitle}\nStatus: ${pendingStatusLabel.value}\nUploaded by: ${uploadedByName}`;
   }
 
   const uploadedByName = usersStore.getUserFullName(record.uploaded_by as string | number | null | undefined);
@@ -957,6 +1072,7 @@ const loadData = async () => {
           attach: (o.attach ?? o.link ?? null) as string | null
         }));
     }
+    syncOrdinanceForm();
     // TODO: Fetch MEAT scores from API when available
     meatScoresLoading.value = false;
     meatScores.value = [];
@@ -973,6 +1089,8 @@ watch(
     if (newId !== oldId) {
       isEditing.value = false;
       ordinances.value = [];
+      ordinanceForm.value = [];
+      originalOrdinanceForm.value = [];
       meatScores.value = [];
       loadData();
     }
@@ -1107,21 +1225,73 @@ onBeforeRouteLeave((to) => {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-/* ── Add related document modal ────────────────────────── */
-.ordinance-form {
+/* ── Inline related document form (History table) ─────── */
+.ordinance-table :deep(td) {
+  vertical-align: middle;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+
+.ordinance-placeholder {
+  color: #9ca3af;
+}
+
+.ordinance-remove-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.ordinance-remove-button:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.ordinance-form-actions {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 0.5rem;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.ordinance-cancel-button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ordinance-cancel-button:hover {
+  background: #f3f4f6;
+}
+
+.ordinance-cancel-button:disabled,
+.add-ordinance-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .ordinance-input {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
-  padding: 0.625rem 0.75rem;
+  padding: 0.5rem 0.625rem;
   font-size: 0.875rem;
   color: #111827;
+  background: #fff;
 }
 
 .ordinance-input:focus {

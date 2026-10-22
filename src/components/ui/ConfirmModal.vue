@@ -1,5 +1,5 @@
 <template>
-  <div v-if="open" class="confirm-overlay" @click.self="emit('cancel')">
+  <div v-if="open" class="confirm-overlay" @click.self="!loading && emit('cancel')">
     <div class="confirm-card">
       <h3 class="confirm-title">{{ title }}</h3>
       <p class="confirm-message">{{ message }}</p>
@@ -9,6 +9,7 @@
           v-if="cancelLabel"
           type="button"
           class="secondary-button"
+          :disabled="loading"
           @click="emit('cancel')"
         >
           {{ cancelLabel }}
@@ -16,10 +17,11 @@
         <button
           type="button"
           class="primary-button"
-          :disabled="disableConfirm"
+          :disabled="disableConfirm || loading"
           @click="emit('confirm')"
         >
-          {{ confirmLabel }}
+          <span v-if="loading" class="confirm-spinner" aria-hidden="true"></span>
+          {{ loading ? loadingLabel || confirmLabel : confirmLabel }}
         </button>
       </div>
     </div>
@@ -35,13 +37,17 @@ withDefaults(
     confirmLabel?: string;
     cancelLabel?: string;
     disableConfirm?: boolean;
+    loading?: boolean;
+    loadingLabel?: string;
   }>(),
   {
     title: 'Discard changes?',
     message: 'You have unsaved changes. Are you sure you want to leave? ',
     confirmLabel: 'Discard',
     cancelLabel: 'Keep editing',
-    disableConfirm: false
+    disableConfirm: false,
+    loading: false,
+    loadingLabel: ''
   }
 );
 
@@ -126,6 +132,28 @@ const emit = defineEmits<{
 
 .primary-button:hover:not(:disabled) {
   background-color: #1d4ed8;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirm-spinner {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: confirm-spin 0.7s linear infinite;
+}
+
+@keyframes confirm-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .primary-button:disabled {
