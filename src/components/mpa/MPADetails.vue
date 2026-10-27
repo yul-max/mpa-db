@@ -74,7 +74,7 @@
             <Column header="Title">
               <template #body="{ data: row, index }">
                 <input
-                  v-if="isAdmin"
+                  v-if="isOrdinanceFormEditable"
                   v-model="ordinanceForm[index]!.name"
                   type="text"
                   class="ordinance-input"
@@ -83,31 +83,42 @@
                   :aria-label="`Title for document ${index + 1}`"
                 />
                 <a
-                  v-else-if="row.attach"
-                  class="ordinance-link"
-                  @click.prevent="openFilePreview(row)"
-                >{{ ordinanceDisplayName(row) }}</a>
-                <span v-else>{{ ordinanceDisplayName(row) }}</span>
+                  v-else-if="ordinanceRowLink(row)"
+                  class="ordinance-link ordinance-cell-text"
+                  :title="ordinanceRowTitle(row)"
+                  @click.prevent="openOrdinancePreview(row)"
+                >{{ ordinanceRowTitle(row) }}</a>
+                <span v-else class="ordinance-cell-text" :title="ordinanceRowTitle(row)">{{ ordinanceRowTitle(row) }}</span>
               </template>
             </Column>
-            <Column v-if="isAdmin" header="Link">
-              <template #body="{ index }">
-                <input
-                  v-model="ordinanceForm[index]!.link"
-                  type="url"
-                  class="ordinance-input"
-                  placeholder="https://drive.google.com/..."
-                  autocomplete="off"
-                  :aria-label="`Link for document ${index + 1}`"
-                />
-                <p v-if="ordinanceLinkError(ordinanceForm[index]!)" class="ordinance-input-error">
-                  Must be a valid Google Drive link.
-                </p>
+            <Column v-if="isOrdinanceFormEditable" header="Link">
+              <template #body="{ data: row, index }">
+                <template v-if="isOrdinanceFormEditable">
+                  <input
+                    v-model="ordinanceForm[index]!.link"
+                    type="url"
+                    class="ordinance-input"
+                    placeholder="https://drive.google.com/..."
+                    autocomplete="off"
+                    :aria-label="`Link for document ${index + 1}`"
+                  />
+                  <p v-if="ordinanceLinkError(ordinanceForm[index]!)" class="ordinance-input-error">
+                    Must be a valid Google Drive link.
+                  </p>
+                </template>
+                <span v-else-if="!ordinanceRowLink(row)" class="ordinance-placeholder">&mdash;</span>
+                <a
+                  v-else
+                  class="ordinance-link ordinance-cell-text"
+                  :title="ordinanceRowLink(row)"
+                  @click.prevent="openOrdinancePreview(row)"
+                >{{ ordinanceRowLink(row) }}</a>
               </template>
             </Column>
             <Column v-if="isAdmin" header="" style="width: 56px">
               <template #body="{ index }">
                 <button
+                  v-if="isOrdinanceFormEditable"
                   type="button"
                   class="ordinance-remove-button"
                   aria-label="Remove document"
@@ -119,7 +130,7 @@
             </Column>
             <!-- Download column hidden until further notice -->
           </DataTable>
-          <div v-if="isAdmin && isOrdinanceFormDirty" class="ordinance-form-actions">
+          <div v-if="isOrdinanceFormEditable" class="ordinance-form-actions">
             <button
               type="button"
               class="ordinance-cancel-button"
@@ -422,6 +433,10 @@ interface OrdinanceEntry {
   type: number | null;
   name: string;
   link: string;
+  // Rows added in this session, as opposed to saved records
+  isNew: boolean;
+  // Link as it was loaded, used to detect user edits
+  originalLink: string;
 }
 const ordinanceForm = ref<OrdinanceEntry[]>([]);
 const originalOrdinanceForm = ref<OrdinanceEntry[]>([]);
@@ -440,10 +455,6 @@ const ordinanceTypeLabel = (type: number): string => {
   const labels: Record<number, string> = { 1: 'Legislation', 2: 'Remarks', 3: 'Award' };
   return labels[type] ?? 'Unknown';
 };
-
-// Fall back to the link when a record has no title
-const ordinanceDisplayName = (row: { val?: string | null; attach?: string | null }): string =>
-  (row.val ?? '').trim() || (row.attach ?? '').trim();
 
 const mpaTypeLabel = (type: number | string | Array<number | string> | null | undefined): string => {
   if (type === null || type === undefined || type === '') return 'N/A';
@@ -465,18 +476,28 @@ const mpaTypeLabel = (type: number | string | Array<number | string> | null | un
     .join(', ');
 };
 
-const openFilePreview = (row: Ordinance) => {
-  if (!row.attach) return;
+// Rows come from either the read-only list (Ordinance) or the edit form (OrdinanceEntry)
+type OrdinanceRow = Ordinance | OrdinanceEntry;
+
+const ordinanceRowLink = (row: OrdinanceRow): string =>
+  (('attach' in row ? row.attach : row.link) ?? '').trim();
+
+const ordinanceRowTitle = (row: OrdinanceRow): string =>
+  (('val' in row ? row.val : row.name) ?? '').trim() || ordinanceRowLink(row);
+
+const openOrdinancePreview = (row: OrdinanceRow) => {
+  const link = ordinanceRowLink(row);
+  if (!link) return;
 
   // Only mandaragat links are opened inline. External links require confirmation.
-  if (!isMandaragatLink(row.attach)) {
-    pendingExternalLink.value = row.attach;
+  if (!isMandaragatLink(link)) {
+    pendingExternalLink.value = link;
     externalLinkConfirmOpen.value = true;
     return;
   }
 
-  previewTitle.value = row.val;
-  previewUrl.value = row.attach;
+  previewTitle.value = ordinanceRowTitle(row);
+  previewUrl.value = link;
 };
 
 const isMandaragatLink = (url: string): boolean => {
@@ -514,11 +535,13 @@ const openMEATForm = () => {
 // The history table doubles as the edit form: existing records are editable and
 // removable, and new rows can be appended. Submitting sends the full list.
 const toOrdinanceEntry = (o: Ordinance): OrdinanceEntry => ({
-  id: o.id,
+  id: o.id ?? null,
   year: o.year ?? null,
   type: o.type ?? null,
   name: o.val ?? '',
-  link: o.attach ?? ''
+  link: o.attach ?? '',
+  isNew: false,
+  originalLink: o.attach ?? ''
 });
 
 const syncOrdinanceForm = () => {
@@ -527,7 +550,15 @@ const syncOrdinanceForm = () => {
 };
 
 const addOrdinanceRow = () => {
-  ordinanceForm.value.push({ id: null, year: null, type: null, name: '', link: '' });
+  ordinanceForm.value.push({
+    id: null,
+    year: null,
+    type: null,
+    name: '',
+    link: '',
+    isNew: true,
+    originalLink: ''
+  });
 };
 
 const removeOrdinanceRow = (index: number) => {
@@ -551,30 +582,53 @@ const isGoogleDriveLink = (url: string): boolean => {
 // Existing records may hold legacy (non-Drive) links; only enforce the Drive
 // requirement on links the user actually entered or changed.
 const isOrdinanceLinkUnchanged = (entry: OrdinanceEntry) =>
-  entry.id !== null &&
-  originalOrdinanceForm.value.some((original) => original.id === entry.id && original.link === entry.link);
+  !entry.isNew && entry.link === entry.originalLink;
 
-const isOrdinanceEntryValid = (entry: OrdinanceEntry) =>
-  entry.link.trim() !== '' &&
-  (isOrdinanceLinkUnchanged(entry) || isGoogleDriveLink(entry.link.trim()));
+// New rows must carry a valid Drive link. Existing records may legitimately
+// have no attachment or hold a legacy (non-Drive) link, so only enforce the
+// Drive requirement on links the user actually changed.
+const isOrdinanceEntryValid = (entry: OrdinanceEntry) => {
+  const link = entry.link.trim();
+  if (!entry.isNew) {
+    return link === '' || isOrdinanceLinkUnchanged(entry) || isGoogleDriveLink(link);
+  }
+  return link !== '' && isGoogleDriveLink(link);
+};
 
 // Only newly added rows must have a link before another row can be added;
 // existing records may legitimately have no attachment
 const hasBlankOrdinanceLink = computed(() =>
-  ordinanceForm.value.some((entry) => entry.id === null && entry.link.trim() === '')
+  ordinanceForm.value.some((entry) => entry.isNew && entry.link.trim() === '')
+);
+
+// The table doubles as the edit form: rows become editable in edit mode, or as
+// soon as a new row is added. The Link column only exists for editing, so it is
+// shown under the same condition.
+const isOrdinanceFormEditable = computed(() =>
+  isAdmin.value &&
+  (isEditing.value || ordinanceForm.value.some((entry) => entry.isNew))
 );
 
 const ordinanceLinkError = (entry: OrdinanceEntry) =>
   entry.link.trim() !== '' && !isOrdinanceLinkUnchanged(entry) && !isGoogleDriveLink(entry.link.trim());
 
+// A freshly added row the user has not filled in yet is ignored: it neither
+// blocks saving other changes nor gets submitted
+const isOrdinanceEntryBlank = (entry: OrdinanceEntry) =>
+  entry.isNew && entry.name.trim() === '' && entry.link.trim() === '';
+
+const submittableOrdinanceEntries = computed(() =>
+  ordinanceForm.value.filter((entry) => !isOrdinanceEntryBlank(entry))
+);
+
 const isOrdinanceFormDirty = computed(() =>
-  JSON.stringify(ordinanceForm.value) !== JSON.stringify(originalOrdinanceForm.value)
+  JSON.stringify(submittableOrdinanceEntries.value) !== JSON.stringify(originalOrdinanceForm.value)
 );
 
 const canSubmitOrdinances = computed(() =>
   !isSubmittingOrdinances.value &&
   isOrdinanceFormDirty.value &&
-  ordinanceForm.value.every(isOrdinanceEntryValid)
+  submittableOrdinanceEntries.value.every(isOrdinanceEntryValid)
 );
 
 const clearOrdinancesModalOpen = ref(false);
@@ -583,7 +637,7 @@ const performOrdinanceSubmit = async () => {
   const record = currentData.value;
   const mpaId = (isPending.value ? record?.staging_id : record?.id) ?? route.params.id;
 
-  const payload = ordinanceForm.value.map((entry) => ({
+  const payload = submittableOrdinanceEntries.value.map((entry) => ({
     ordinance_name: entry.name.trim(),
     ordinance_link: entry.link.trim()
   }));
@@ -607,7 +661,7 @@ const submitOrdinanceForm = async () => {
   if (!canSubmitOrdinances.value) return;
 
   // Submitting an empty list wipes every existing related document — confirm first
-  if (ordinanceForm.value.length === 0) {
+  if (submittableOrdinanceEntries.value.length === 0) {
     clearOrdinancesModalOpen.value = true;
     return;
   }
@@ -1114,6 +1168,7 @@ const cancelEdit = () => {
     editPayload.value = payload;
     originalEditPayload.value = clonePayload(payload);
   }
+  resetOrdinanceForm();
   isEditing.value = false;
 };
 
@@ -1228,10 +1283,29 @@ onBeforeRouteLeave((to) => {
 }
 
 /* ── Inline related document form (History table) ─────── */
+.ordinance-table {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Fixed layout keeps long titles/links from widening the table */
+.ordinance-table :deep(table) {
+  table-layout: fixed;
+  width: 100%;
+}
+
 .ordinance-table :deep(td) {
   vertical-align: middle;
   padding-top: 0.625rem;
   padding-bottom: 0.625rem;
+}
+
+.ordinance-cell-text {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ordinance-placeholder {
@@ -1311,6 +1385,8 @@ onBeforeRouteLeave((to) => {
 /* ── Ordinance history ─────────────────────────────────── */
 .ordinance-history {
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .ordinance-header {
